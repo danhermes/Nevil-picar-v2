@@ -1,7 +1,6 @@
 # Environment variables
 .env
 .env.*
-.roo/mcp.json
 
 # Python
 __pycache__/
@@ -43,3 +42,4 @@ Thumbs.db
 
 # Project specific files
 gpt_examples/img_input.jpg
+.roo/mcp.json

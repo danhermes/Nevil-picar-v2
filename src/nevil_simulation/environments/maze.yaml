@@ -1,0 +1,66 @@
+# Maze Environment for Nevil-picar v2.0 Simulation
+
+name: "Maze Environment"
+description: "A simple maze environment for navigation testing"
+size: [10.0, 10.0]  # [x, y] in meters
+
+obstacles:
+  # Outer walls
+  - type: "box"
+    position: [0.0, 5.0, 0.0]
+    dimensions: [10.0, 0.1, 0.5]
+  
+  - type: "box"
+    position: [0.0, -5.0, 0.0]
+    dimensions: [10.0, 0.1, 0.5]
+  
+  - type: "box"
+    position: [5.0, 0.0, 0.0]
+    dimensions: [0.1, 10.0, 0.5]
+  
+  - type: "box"
+    position: [-5.0, 0.0, 0.0]
+    dimensions: [0.1, 10.0, 0.5]
+  
+  # Maze internal walls
+  - type: "box"
+    position: [-3.0, 0.0, 0.0]
+    dimensions: [0.1, 8.0, 0.5]
+  
+  - type: "box"
+    position: [-1.0, -1.0, 0.0]
+    dimensions: [0.1, 8.0, 0.5]
+  
+  - type: "box"
+    position: [1.0, 1.0, 0.0]
+    dimensions: [0.1, 8.0, 0.5]
+  
+  - type: "box"
+    position: [3.0, 0.0, 0.0]
+    dimensions: [0.1, 8.0, 0.5]
+  
+  - type: "box"
+    position: [-4.0, 3.0, 0.0]
+    dimensions: [2.0, 0.1, 0.5]
+  
+  - type: "box"
+    position: [-2.0, 1.0, 0.0]
+    dimensions: [2.0, 0.1, 0.5]
+  
+  - type: "box"
+    position: [0.0, -1.0, 0.0]
+    dimensions: [2.0, 0.1, 0.5]
+  
+  - type: "box"
+    position: [2.0, -3.0, 0.0]
+    dimensions: [2.0, 0.1, 0.5]
+  
+  - type: "box"
+    position: [4.0, 3.0, 0.0]
+    dimensions: [2.0, 0.1, 0.5]
+
+# Properties for visualization
+colors:
+  ground: [0.8, 0.8, 0.8, 1.0]  # RGBA
+  walls: [0.7, 0.7, 0.7, 1.0]
+  obstacles: [0.7, 0.7, 0.7, 1.0]

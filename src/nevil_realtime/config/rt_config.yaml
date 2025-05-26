@@ -1,0 +1,103 @@
+# Real-time configuration for Nevil-picar v2.0
+
+# Global settings
+global:
+  # Enable real-time features (set to false to disable all real-time features)
+  enable_realtime: true
+  
+  # Lock memory to prevent paging
+  lock_memory: true
+  
+  # CPU core to isolate for real-time tasks (set to -1 to disable)
+  isolated_core: 3
+  
+  # Maximum latency allowed for critical operations (microseconds)
+  max_latency_us: 1000
+
+# Thread priorities (0-99, higher is higher priority)
+# SCHED_FIFO policy is used for all real-time threads
+priorities:
+  # Critical nodes (highest priority)
+  motion_control: 90
+  obstacle_avoidance: 85
+  
+  # Medium priority nodes
+  sensor_processing: 80
+  navigation: 75
+  
+  # Lower priority nodes
+  camera_vision: 70
+  voice_control: 60
+  ai_processing: 50
+  system_manager: 40
+
+# CPU affinity for nodes (which CPU cores to use)
+# Set to empty list for no specific affinity
+cpu_affinity:
+  motion_control: [3]  # Pin to isolated core
+  obstacle_avoidance: [3]  # Pin to isolated core
+  sensor_processing: [3]  # Pin to isolated core
+  navigation: [2]
+  camera_vision: [1]
+  voice_control: [0]
+  ai_processing: [0, 1, 2]  # Allow multiple cores for AI
+  system_manager: []  # No specific affinity
+
+# Real-time communication settings
+communication:
+  # Use Cyclone DDS for real-time performance
+  use_cyclone_dds: true
+  
+  # DDS QoS settings
+  qos:
+    # Critical topics
+    cmd_vel:
+      reliability: RELIABLE
+      durability: VOLATILE
+      deadline_ms: 10
+      history_depth: 1
+    
+    ultrasonic_data:
+      reliability: RELIABLE
+      durability: VOLATILE
+      deadline_ms: 20
+      history_depth: 1
+    
+    # Non-critical topics
+    camera_image:
+      reliability: BEST_EFFORT
+      durability: VOLATILE
+      deadline_ms: 100
+      history_depth: 1
+
+# Hardware interface settings
+hardware:
+  # Polling rates for sensors (Hz)
+  polling_rates:
+    ultrasonic: 50
+    infrared: 50
+    camera: 30
+    imu: 100
+  
+  # Mutex timeout (milliseconds)
+  mutex_timeout_ms: 100
+  
+  # Enable hardware watchdog
+  enable_watchdog: true
+  
+  # Watchdog timeout (milliseconds)
+  watchdog_timeout_ms: 500
+
+# Monitoring and diagnostics
+monitoring:
+  # Enable latency monitoring
+  enable_latency_monitoring: true
+  
+  # Latency reporting interval (seconds)
+  latency_report_interval: 10
+  
+  # Log level for real-time components
+  log_level: INFO  # DEBUG, INFO, WARN, ERROR
+  
+  # Enable performance tracing
+  enable_tracing: false

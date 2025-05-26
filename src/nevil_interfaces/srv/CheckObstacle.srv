@@ -1,0 +1,19 @@
+# Check obstacle service for Nevil-picar v2.0
+
+# Request
+# Direction to check (in radians, 0 = forward, positive = left, negative = right)
+float32 direction
+# Maximum distance to check (in meters)
+float32 max_distance
+# Check mode (single, continuous)
+string mode
+---
+# Response
+# Whether an obstacle was detected
+bool obstacle_detected
+# Distance to the obstacle (in meters, -1 if no obstacle detected)
+float32 distance
+# Direction to the obstacle (in radians, 0 = forward, positive = left, negative = right)
+float32 obstacle_direction
+# Confidence level (0.0 to 1.0)
+float32 confidence

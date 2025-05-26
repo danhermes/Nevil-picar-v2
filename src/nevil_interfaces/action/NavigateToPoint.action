@@ -1,0 +1,23 @@
+# Navigate to point action for Nevil-picar v2.0
+
+# Goal
+geometry_msgs/PoseStamped target_pose    # Target pose to navigate to
+float32 linear_velocity                  # Desired linear velocity (m/s)
+float32 angular_velocity                 # Desired angular velocity (rad/s)
+bool avoid_obstacles                     # Whether to avoid obstacles during navigation
+float32 goal_tolerance                   # Distance tolerance for reaching the goal (m)
+---
+# Result
+bool success                             # Whether navigation was successful
+string result_code                       # Result code
+string message                           # Human-readable result message
+geometry_msgs/PoseStamped final_pose     # Final pose reached
+float32 distance_traveled                # Total distance traveled (m)
+float32 time_elapsed                     # Total time elapsed (s)
+---
+# Feedback
+geometry_msgs/PoseStamped current_pose   # Current pose
+float32 distance_remaining               # Distance remaining to goal (m)
+float32 time_elapsed                     # Time elapsed since start (s)
+float32 estimated_time_remaining         # Estimated time remaining (s)
+string current_state                     # Current navigation state

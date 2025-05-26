@@ -1,7 +1,7 @@
 # Environment variables
 .env
 .env.*
-mcp.json
+.roo/mcp.json
 
 # Python
 __pycache__/

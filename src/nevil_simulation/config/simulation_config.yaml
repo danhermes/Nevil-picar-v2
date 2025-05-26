@@ -1,0 +1,74 @@
+# Nevil Simulation Configuration
+
+# Simulation parameters
+simulation:
+  update_rate: 30.0  # Hz
+  physics_update_rate: 100.0  # Hz
+  auto_start: true
+  visualization_enabled: true
+
+# Robot parameters
+robot:
+  mass: 1.5  # kg
+  width: 0.15  # m
+  length: 0.2  # m
+  wheel_radius: 0.03  # m
+  max_linear_velocity: 0.5  # m/s
+  max_angular_velocity: 1.0  # rad/s
+  
+  # Sensor parameters
+  ultrasonic:
+    min_range: 0.02  # m
+    max_range: 4.0  # m
+    field_of_view: 0.5  # rad
+    noise_mean: 0.0  # m
+    noise_stddev: 0.01  # m
+    update_rate: 10.0  # Hz
+  
+  camera:
+    resolution_width: 640  # pixels
+    resolution_height: 480  # pixels
+    field_of_view: 1.0  # rad
+    min_range: 0.1  # m
+    max_range: 10.0  # m
+    update_rate: 15.0  # Hz
+  
+  infrared:
+    min_range: 0.0  # m
+    max_range: 0.3  # m
+    noise_probability: 0.05  # probability of false reading
+    update_rate: 20.0  # Hz
+
+# Physics parameters
+physics:
+  gravity: 9.81  # m/s^2
+  friction: 0.5  # coefficient of friction
+  restitution: 0.7  # coefficient of restitution
+  linear_damping: 0.1  # linear damping factor
+  angular_damping: 0.1  # angular damping factor
+
+# Visualization parameters
+visualization:
+  show_robot: true
+  show_sensors: true
+  show_debug: false
+  show_camera: true
+  show_ultrasonic: true
+  show_trajectories: true
+  max_trajectory_points: 1000
+
+# Environment parameters
+environment:
+  default: "empty"
+  default_size_x: 10.0  # m
+  default_size_y: 10.0  # m
+  default_obstacle_count: 5
+  wall_height: 0.5  # m
+  
+  # Colors (RGBA)
+  ground_color: [0.8, 0.8, 0.8, 1.0]
+  wall_color: [0.7, 0.7, 0.7, 1.0]
+  obstacle_color: [0.9, 0.2, 0.2, 1.0]
+  robot_color: [0.2, 0.2, 0.9, 1.0]
+  sensor_color: [0.2, 0.9, 0.2, 1.0]
+  trajectory_color: [0.9, 0.9, 0.2, 0.8]

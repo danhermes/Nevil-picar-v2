@@ -1,0 +1,20 @@
+# Process dialog action for Nevil-picar v2.0
+
+# Goal
+string initial_utterance     # Initial user utterance to start the dialog
+string context_id            # Optional context ID for existing conversation
+string dialog_mode           # 'command', 'conversation', 'query', 'notification'
+float32 timeout              # Maximum time to wait for dialog completion (seconds)
+---
+# Result
+bool success
+string message
+string final_state           # Final state of the dialog
+string dialog_summary        # Summary of the dialog
+string[] actions_taken       # List of actions taken during the dialog
+---
+# Feedback
+string current_state         # Current state of the dialog
+string last_utterance        # Last utterance in the dialog
+uint32 turn_count            # Current turn count
+float32 elapsed_time         # Time elapsed since start of dialog (seconds)

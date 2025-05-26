@@ -1,0 +1,12 @@
+# Empty Environment for Nevil-picar v2.0 Simulation
+
+name: "Empty Environment"
+description: "An empty environment with no obstacles"
+size: [10.0, 10.0]  # [x, y] in meters
+
+obstacles: []  # No obstacles
+
+# Properties for visualization
+colors:
+  ground: [0.8, 0.8, 0.8, 1.0]  # RGBA
+  walls: [0.7, 0.7, 0.7, 1.0]

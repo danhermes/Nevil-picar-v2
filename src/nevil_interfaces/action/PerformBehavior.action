@@ -1,0 +1,21 @@
+# Perform behavior action for Nevil-picar v2.0
+
+# Goal
+string behavior_id                       # Unique identifier for the behavior
+string behavior_name                     # Human-readable name of the behavior
+string behavior_category                 # Category of behavior (navigation, expression, interaction)
+string[] param_names                     # Names of behavior parameters
+string[] param_values                    # Values of behavior parameters
+float32 duration                         # Maximum duration of behavior execution (s)
+---
+# Result
+bool success                             # Whether behavior execution was successful
+string result_code                       # Result code
+string message                           # Human-readable result message
+float32 actual_duration                  # Actual duration of behavior execution (s)
+---
+# Feedback
+float32 progress                         # Progress of behavior execution (0.0 to 1.0)
+float32 time_elapsed                     # Time elapsed since start (s)
+string current_state                     # Current behavior state
+string status_message                    # Status message

@@ -1,0 +1,76 @@
+# Development Mode configuration for Nevil-picar v2.0
+# This configuration includes debugging tools and development features
+
+# System configuration
+system:
+  mode: standby
+  log_level: debug
+  diagnostics_frequency: 5.0  # Hz (higher for development)
+
+# Navigation configuration
+navigation:
+  mode: manual
+  max_speed: 0.3  # m/s (conservative for development)
+  max_angular_speed: 1.0  # rad/s
+  control_rate: 30.0  # Hz
+  obstacle_avoidance: true
+  path_planning: true
+  debug_path_visualization: true
+  debug_control_commands: true
+
+# Perception configuration
+perception:
+  enable_detection: true
+  min_distance: 0.2  # m
+  camera_resolution: [640, 480]
+  camera_fps: 30
+  enable_object_recognition: true
+  enable_lane_detection: true
+  debug_image_output: true
+  debug_detection_visualization: true
+
+# AI interfaces configuration
+ai_interfaces:
+  use_online_recognition: true
+  use_online_tts: true
+  use_cloud_ai: true
+  language: en-US
+  max_context_size: 20
+  idle_timeout: 300.0  # seconds (longer for development)
+  debug_dialog_output: true
+  debug_speech_recognition: true
+
+# Real-time configuration
+realtime:
+  enable_rt: false  # Disabled for easier debugging
+  isolated_core: -1
+  control_priority: 0
+  sensor_priority: 0
+  config_priority: 0
+  debug_timing_analysis: true
+  debug_priority_info: true
+
+# Development tools
+development:
+  enable_hot_reload: true
+  enable_parameter_tuning_ui: true
+  enable_performance_profiling: true
+  enable_memory_monitoring: true
+  enable_remote_debugging: true
+  remote_debug_port: 9090
+  enable_test_fixtures: true
+  enable_mock_hardware: true
+  enable_data_recording: true
+  data_recording_path: "/tmp/nevil_data"
+
+# Feature toggles
+features:
+  enable_voice_interface: true
+  enable_autonomous_navigation: true
+  enable_learning_mode: true
+  enable_remote_control: true
+  enable_data_logging: true
+  enable_diagnostics: true
+  enable_visualization: true
+  enable_debug_topics: true
+  enable_parameter_introspection: true

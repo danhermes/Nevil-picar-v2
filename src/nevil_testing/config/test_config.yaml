@@ -1,0 +1,234 @@
+# Test configuration for Nevil-picar v2.0
+
+# General test configuration
+general:
+  # Whether to use simulation or real hardware
+  use_simulation: true
+  
+  # Timeout for tests in seconds
+  test_timeout: 30.0
+  
+  # Whether to enable verbose output
+  verbose: false
+  
+  # Whether to stop on first failure
+  stop_on_failure: false
+
+# Unit test configuration
+unit_tests:
+  # Whether to run unit tests
+  enabled: true
+  
+  # Packages to test
+  packages:
+    - core
+    - navigation
+    - perception
+    - realtime
+    - interfaces_ai
+    - simulation
+  
+  # Test coverage threshold
+  coverage_threshold: 80.0
+
+# Integration test configuration
+integration_tests:
+  # Whether to run integration tests
+  enabled: true
+  
+  # Test scenarios
+  scenarios:
+    - name: navigation_system
+      description: Test the navigation system
+      timeout: 60.0
+    
+    - name: perception_system
+      description: Test the perception system
+      timeout: 60.0
+    
+    - name: voice_control
+      description: Test the voice control system
+      timeout: 60.0
+    
+    - name: behavior_system
+      description: Test the behavior system
+      timeout: 60.0
+
+# System test configuration
+system_tests:
+  # Whether to run system tests
+  enabled: true
+  
+  # Test scenarios
+  scenarios:
+    - name: end_to_end_navigation
+      description: Test end-to-end navigation
+      timeout: 120.0
+      
+      # Test parameters
+      parameters:
+        start_pose:
+          x: 0.0
+          y: 0.0
+          theta: 0.0
+        
+        goal_pose:
+          x: 2.0
+          y: 2.0
+          theta: 0.0
+        
+        obstacles:
+          - type: box
+            position:
+              x: 1.0
+              y: 1.0
+            size:
+              width: 0.5
+              height: 0.5
+    
+    - name: voice_command_execution
+      description: Test voice command execution
+      timeout: 120.0
+      
+      # Test parameters
+      parameters:
+        commands:
+          - "Move forward one meter"
+          - "Turn left 90 degrees"
+          - "Go to the kitchen"
+          - "Stop"
+    
+    - name: error_handling
+      description: Test error handling
+      timeout: 120.0
+      
+      # Test parameters
+      parameters:
+        error_scenarios:
+          - name: obstacle_blocking_path
+            description: Test handling of obstacle blocking path
+          
+          - name: invalid_command
+            description: Test handling of invalid command
+          
+          - name: low_battery
+            description: Test handling of low battery
+
+# Performance test configuration
+performance_tests:
+  # Whether to run performance tests
+  enabled: true
+  
+  # Test scenarios
+  scenarios:
+    - name: navigation_performance
+      description: Test navigation performance
+      timeout: 180.0
+      
+      # Test parameters
+      parameters:
+        num_trials: 5
+        max_linear_velocity: 0.5
+        max_angular_velocity: 1.0
+    
+    - name: perception_performance
+      description: Test perception performance
+      timeout: 180.0
+      
+      # Test parameters
+      parameters:
+        num_trials: 5
+        max_distance: 3.0
+    
+    - name: voice_control_performance
+      description: Test voice control performance
+      timeout: 180.0
+      
+      # Test parameters
+      parameters:
+        num_trials: 5
+        commands_per_trial: 10
+
+# Simulation test configuration
+simulation:
+  # Simulation environments
+  environments:
+    - name: empty
+      description: Empty environment
+    
+    - name: obstacle_course
+      description: Environment with obstacles
+    
+    - name: maze
+      description: Maze environment
+  
+  # Simulation parameters
+  parameters:
+    # Physics engine parameters
+    physics:
+      gravity: 9.81
+      friction: 0.5
+      time_step: 0.01
+    
+    # Sensor simulation parameters
+    sensors:
+      # Camera parameters
+      camera:
+        resolution:
+          width: 640
+          height: 480
+        field_of_view: 60.0
+        noise: 0.01
+      
+      # Ultrasonic sensor parameters
+      ultrasonic:
+        max_range: 4.0
+        min_range: 0.02
+        field_of_view: 15.0
+        noise: 0.02
+      
+      # IMU parameters
+      imu:
+        noise:
+          linear_acceleration: 0.01
+          angular_velocity: 0.01
+          orientation: 0.01
+    
+    # Robot parameters
+    robot:
+      # Robot dimensions
+      dimensions:
+        length: 0.2
+        width: 0.15
+        height: 0.1
+      
+      # Robot mass
+      mass: 1.0
+      
+      # Motor parameters
+      motors:
+        max_velocity: 0.5
+        max_acceleration: 1.0
+        noise: 0.05
+
+# Hardware test configuration
+hardware:
+  # Safety parameters
+  safety:
+    # Maximum velocity
+    max_linear_velocity: 0.3
+    max_angular_velocity: 0.5
+    
+    # Minimum obstacle distance
+    min_obstacle_distance: 0.2
+    
+    # Emergency stop timeout
+    emergency_stop_timeout: 0.5
+  
+  # Calibration parameters
+  calibration:
+    # Whether to calibrate before testing
+    enabled: true
+    
+    # Calibration timeout
+    timeout: 30.0

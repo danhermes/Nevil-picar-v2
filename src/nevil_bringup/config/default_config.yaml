@@ -1,0 +1,58 @@
+# Default configuration for Nevil-picar v2.0
+
+# System configuration
+system:
+  mode: standby  # standby, manual, autonomous
+  log_level: info  # debug, info, warn, error
+  diagnostics_frequency: 1.0  # Hz
+
+# Navigation configuration
+navigation:
+  mode: manual  # manual, autonomous, learning
+  max_speed: 0.5  # m/s
+  max_angular_speed: 1.5  # rad/s
+  control_rate: 20.0  # Hz
+  obstacle_avoidance: true
+  path_planning: false
+
+# Perception configuration
+perception:
+  enable_detection: true
+  min_distance: 0.2  # m
+  camera_resolution: [640, 480]  # width, height
+  camera_fps: 30
+  enable_object_recognition: false
+  enable_lane_detection: false
+
+# AI interfaces configuration
+ai_interfaces:
+  use_online_recognition: true
+  use_online_tts: false
+  use_cloud_ai: true
+  language: en-US
+  max_context_size: 10
+  idle_timeout: 60.0  # seconds
+
+# Real-time configuration
+realtime:
+  enable_rt: true
+  isolated_core: -1  # -1 to disable
+  control_priority: 90
+  sensor_priority: 85
+  config_priority: 40
+
+# Simulation configuration
+simulation:
+  environment: empty  # empty, obstacle_course, maze
+  use_rviz: true
+  physics_update_rate: 100.0  # Hz
+  visualization_update_rate: 30.0  # Hz
+
+# Feature toggles
+features:
+  enable_voice_interface: true
+  enable_autonomous_navigation: false
+  enable_learning_mode: false
+  enable_remote_control: true
+  enable_data_logging: true
+  enable_diagnostics: true

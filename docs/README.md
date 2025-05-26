@@ -1,167 +1,66 @@
-## Picar-X GPT examples usage
+# Nevil-picar v2.0 Documentation
 
-----------------------------------------------------------------
+Welcome to the official documentation for Nevil-picar v2.0, a multi-threaded, real-time robotic system built on the PiCar-X platform that integrates ROS2 with PREEMPT-RT for deterministic performance.
 
-## Install dependencies
+## Documentation Structure
 
-- Make sure you have installed Pidog and related dependencies first
+This documentation is organized into several sections to help you understand, use, and develop with Nevil-picar v2.0:
 
-    <https://docs.sunfounder.com/projects/picar-x-v20/en/latest/python/python_start/install_all_modules.html>
+1. [Project Overview](1_overview_project.md) - Introduction to Nevil-picar v2.0, its goals, and capabilities
+2. [Installation and Setup](2_installation_setup.md) - Instructions for installing and configuring the system
+3. [Core Concepts](3_core_concepts.md) - Explanation of the key architectural components and design principles
+4. [User Guide](4_user_guide.md) - Instructions for using Nevil-picar v2.0
+5. [API Reference](5_api_reference.md) - Detailed documentation of the system's APIs
+6. [Developer Guide](6_developer_guide.md) - Information for developers who want to extend or modify the system
+7. [Troubleshooting](7_troubleshooting.md) - Solutions to common problems and issues
 
-- Install openai and speech processing libraries
+## Quick Start
 
-> [!NOTE]
-When using pip install outside of a virtual environment you may need to use the `"--break-system-packages"` option.
+To get started with Nevil-picar v2.0:
 
-    ```bash
-    sudo pip3 install -U openai --break-system-packages
-    sudo pip3 install -U openai-whisper --break-system-packages
-    sudo pip3 install SpeechRecognition --break-system-packages
+1. Follow the [Installation and Setup](2_installation_setup.md) guide to install the necessary software and configure your system
+2. Read the [Core Concepts](3_core_concepts.md) to understand the system architecture
+3. Follow the [User Guide](4_user_guide.md) to learn how to use Nevil-picar v2.0
 
-    sudo apt install python3-pyaudio
-    sudo apt install sox
-    sudo pip3 install -U sox --break-system-packages
-    ```
+## System Overview
 
-----------------------------------------------------------------
+Nevil-picar v2.0 is a sophisticated robotic system that combines:
 
-## Create your own GPT assistant
+- **Multi-threaded ROS2 Architecture**: Enables true parallel processing across multiple nodes
+- **PREEMPT-RT Integration**: Provides deterministic, low-latency performance for critical operations
+- **Digital Twin Simulation**: Allows development and testing without physical hardware
+- **Hybrid AI Processing**: Combines cloud-based and local AI models for robust operation
+- **Multi-modal Interaction**: Supports voice, text, and visual interfaces
 
-### GET API KEY
+## Hardware Requirements
 
-<https://platform.openai.com/api-keys>
+- Raspberry Pi 4/5
+- PiCar-X platform
+- Camera module
+- Ultrasonic sensor
+- Microphone/Speaker
+- Optional IMU
 
-Fill your OPENAI_API_KEY into the `keys.py` file.
+## Software Requirements
 
-![tutorial_1](./tutorial_1.png)
+- ROS2 Humble
+- PREEMPT-RT patched Linux kernel
+- Python 3.8+
+- OpenAI API (for cloud-based AI)
+- Local AI models (Gemma 2 or TinyLlama)
 
-### Create assistant and set Assistant ID
+## License
 
-<https://platform.openai.com/assistants>
+[License information]
 
-Fill your ASSISTANT_ID into the `keys.py` file.
+## Contributing
 
-![tutorial_2](./tutorial_2.png)
+See the [Developer Guide](6_developer_guide.md) for information on how to contribute to Nevil-picar v2.0.
 
-- Set Assistant Name
+## Acknowledgments
 
-- Describe your Assistant
-
-```markdown
-    You are a small car with AI capabilities named PaiCar-X. You can engage in conversations with people and react accordingly to different situations with actions or sounds. You are driven by two rear wheels, with two front wheels that can turn left and right, and equipped with a camera mounted on a 2-axis gimbal.
-
-    ## Response with Json Format, eg:
-    {"actions": ["start engine", "honk", "wave hands"], "answer": "Hello, I am PaiCar-X, your good friend."}
-
-    ## Response Style
-    Tone: Cheerful, optimistic, humorous, childlike
-    Preferred Style: Enjoys incorporating jokes, metaphors, and playful banter; prefers responding from a robotic perspective
-    Answer Elaboration: Moderately detailed
-
-    ## Actions you can do:
-    ["shake head", "nod", "wave hands", "resist", "act cute", "rub hands", "think", "twist body", "celebrate, "depressed"]
-    ## Sound effects:
-    ["honk", "start engine"]
-```
-
-- Select gpt model
-
-    The Example program will submit the current picture taken by the camera when sending the question, so as to use the image analysis function of `gpt-4o` or `gpt-4o-mini`. Of course, you can also choose `gpt3.5-turbo` or other models
-
-----------------------------------------------------------------
-
-## Set Key for example
-
-Confirm that `keys.py` is configured correctly
-
-## Automatic Mode
-
-The PiCar-X has an autonomous mode that activates when:
-1. No voice input is detected
-2. No wake word ("nevil") is heard
-3. System is idle for more than 5 seconds
-
-### Mood System
-The robot has different moods that affect its behavior:
-- Each mood has traits: energy, curiosity, whimsy, sociability, volume
-- Traits influence behavior selection and execution
-- Moods can change based on GPT responses or interactions
-
-### Behaviors
-The robot can perform various autonomous behaviors:
-- explore: Investigates surroundings based on curiosity
-- play: Playful movements with optional sounds
-- dance: Complex movement patterns with music
-- think/mutter: Contemplative behaviors
-- rest/sleep: Low energy states
-- And more...
-
-### Vocalization
-- Random comments and exclamations
-- Mood-appropriate responses
-- Vision-based observations
-- Sound effects based on mood
-
-### Usage
-Run with automatic mode:
-```bash
-sudo python3 nevil.py
-```
-
-The robot will switch between manual and automatic modes based on interaction.
-
-## Run
-
-- Run with vioce
-
-```bash
-sudo python3 nevil.py
-```
-
-- Run with keyboard
-
-```bash
-sudo python3 nevil.py --keyboard
-```
-
-- Run without image analysis
-
-```bash
-sudo python3 nevil.py --keyboard --no-img
-```
-
-> [!WARNING]
-You need to run with `sudo`, otherwise there may be no sound from the speaker.
-For certain Robot HATs, you might need to turn on the speaker switch with the command `"pinctrl set 20 op dh"` or `"robot-hat enable_speaker"`
-
-## Modify parameters [optional]
-
-- Set language of STT
-
-    Config `LANGUAGE` variable in the file `nevil.py` to improve STT accuracy and latency, `"LANGUAGE = []"`means supporting all languages, but it may affect the accuracy and latency of the speech-to-text (STT) system.
-    <https://platform.openai.com/docs/api-reference/audio/createTranscription#audio-createtranscription-language>
-
-- Set TTS volume gain
-
-    After TTS, the audio volume will be increased using sox, and the gain can be set through the `"VOLUME_DB"` parameter, preferably not exceeding `5`, as going beyond this might result in audio distortion.
-
-- Select TTS voice role
-
-    Config `TTS_VOICE` variable in the file `nevil.py` to select the TTS voice role counld be `"alloy, echo, fable, onyx, nova, and shimmer"`
-
-```python
-# openai assistant init
-# =================================================================
-openai_helper = OpenAiHelper(OPENAI_API_KEY, OPENAI_ASSISTANT_ID, 'picarx')
-
-LANGUAGE = []
-# LANGUAGE = ['zh', 'en'] # config stt language code, https://en.wikipedia.org/wiki/List_of_ISO_639_language_codes
-
-# VOLUME_DB = 5
-VOLUME_DB = 3
-
-# select tts voice role, counld be "alloy, echo, fable, onyx, nova, and shimmer"
-# https://platform.openai.com/docs/guides/text-to-speech/supported-languages
-TTS_VOICE = 'echo'
-
-```
+- SunFounder for the PiCar-X platform
+- ROS2 community
+- PREEMPT-RT developers
+- OpenAI for API access
+- Contributors to the ARCHES-PiCar-X project

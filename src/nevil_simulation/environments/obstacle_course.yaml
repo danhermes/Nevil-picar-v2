@@ -1,0 +1,67 @@
+# Obstacle Course Environment for Nevil-picar v2.0 Simulation
+
+name: "Obstacle Course"
+description: "A simple obstacle course with various obstacles to navigate around"
+size: [10.0, 10.0]  # [x, y] in meters
+
+obstacles:
+  # Boxes
+  - type: "box"
+    position: [2.0, 2.0, 0.0]  # [x, y, z] in meters
+    dimensions: [0.5, 0.5, 0.5]  # [width, length, height] in meters
+  
+  - type: "box"
+    position: [-2.0, -2.0, 0.0]
+    dimensions: [0.5, 0.5, 0.5]
+  
+  - type: "box"
+    position: [3.0, -1.5, 0.0]
+    dimensions: [0.3, 1.5, 0.5]
+  
+  # Cylinders
+  - type: "cylinder"
+    position: [-1.0, 3.0, 0.0]
+    radius: 0.3
+    height: 0.5
+  
+  - type: "cylinder"
+    position: [0.0, -3.0, 0.0]
+    radius: 0.4
+    height: 0.5
+  
+  # Spheres
+  - type: "sphere"
+    position: [-3.0, 0.0, 0.0]
+    radius: 0.3
+  
+  - type: "sphere"
+    position: [3.5, 3.5, 0.0]
+    radius: 0.25
+
+# Create a narrow passage
+  - type: "box"
+    position: [0.0, 0.5, 0.0]
+    dimensions: [4.0, 0.1, 0.5]
+  
+  - type: "box"
+    position: [0.0, -0.5, 0.0]
+    dimensions: [4.0, 0.1, 0.5]
+
+# Create a zigzag path
+  - type: "box"
+    position: [-4.0, 2.0, 0.0]
+    dimensions: [0.1, 2.0, 0.5]
+  
+  - type: "box"
+    position: [-3.0, 1.0, 0.0]
+    dimensions: [2.0, 0.1, 0.5]
+  
+  - type: "box"
+    position: [-2.0, 0.0, 0.0]
+    dimensions: [0.1, 2.0, 0.5]
+
+# Properties for visualization
+colors:
+  ground: [0.8, 0.8, 0.8, 1.0]  # RGBA
+  walls: [0.7, 0.7, 0.7, 1.0]
+  obstacles: [0.9, 0.2, 0.2, 1.0]

@@ -1,0 +1,31 @@
+# Query capabilities service for Nevil-picar v2.0
+
+# Request
+string query_type            # 'all', 'commands', 'behaviors', 'navigation', 'perception'
+---
+# Response
+bool success
+string message
+
+# Available capabilities (JSON array of capability objects)
+string capabilities
+
+# Each capability in the JSON array has the following structure:
+# {
+#   "name": "capability_name",
+#   "type": "command|behavior|navigation|perception",
+#   "description": "Human-readable description",
+#   "parameters": [
+#     {
+#       "name": "param_name",
+#       "type": "string|number|boolean",
+#       "description": "Parameter description",
+#       "required": true|false,
+#       "default": "default_value" (optional)
+#     }
+#   ],
+#   "examples": [
+#     "Example natural language command 1",
+#     "Example natural language command 2"
+#   ]
+# }

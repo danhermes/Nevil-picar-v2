@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Wrapper script for ROS2 commands that handles spaces in the path correctly
+
+# Source the setup file
+source ~/nevil/src/install/setup.bash
+
+# Execute the ROS2 command
+ros2 "$@"

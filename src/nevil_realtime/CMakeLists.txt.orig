@@ -1,0 +1,105 @@
+cmake_minimum_required(VERSION 3.8)
+project(nevil_realtime)
+
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(nevil_interfaces REQUIRED)
+find_package(nevil_core REQUIRED)
+
+# Include directories
+include_directories(include)
+
+# C++ libraries
+add_library(rt_thread_utils src/rt_thread_utils.cpp)
+target_include_directories(rt_thread_utils PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(rt_thread_utils pthread rt)
+
+add_library(rt_hardware_interface src/rt_hardware_interface.cpp)
+target_include_directories(rt_hardware_interface PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(rt_hardware_interface rt_thread_utils)
+
+add_library(rt_executor src/rt_executor.cpp)
+target_include_directories(rt_executor PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_link_libraries(rt_executor rt_thread_utils rclcpp::rclcpp)
+
+# C++ executables
+# add_executable(rt_sensor_node src/rt_sensor_node.cpp)
+target_link_libraries(rt_sensor_node rt_executor rt_hardware_interface rclcpp::rclcpp)
+
+# add_executable(rt_motor_control_node src/rt_motor_control_node.cpp)
+target_link_libraries(rt_motor_control_node rt_executor rt_hardware_interface rclcpp::rclcpp)
+
+add_executable(priority_inheritance_demo src/priority_inheritance_demo.cpp)
+target_link_libraries(priority_inheritance_demo rt_thread_utils pthread rt)
+
+# Install C++ libraries
+install(
+  TARGETS rt_thread_utils rt_hardware_interface rt_executor
+          rt_sensor_node rt_motor_control_node priority_inheritance_demo
+  EXPORT export_${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  INCLUDES DESTINATION include
+)
+
+# Install C++ headers
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+# Install Python modules
+ament_python_install_package(${PROJECT_NAME})
+
+# Install Python scripts
+install(
+  PROGRAMS
+    scripts/rt_config_manager.py
+    scripts/rt_sensor_node.py
+    scripts/rt_motor_control_node.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install launch files
+install(
+  DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install config files
+install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_export_include_directories(include)
+ament_export_libraries(rt_thread_utils rt_hardware_interface rt_executor)
+ament_export_targets(export_${PROJECT_NAME})
+
+ament_package()

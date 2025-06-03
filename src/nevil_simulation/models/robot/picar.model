@@ -1,0 +1,30 @@
+# Picar Robot Model
+
+name: picar
+version: 1.0
+
+dimensions:
+  length: 0.2
+  width: 0.15
+  height: 0.1
+
+mass: 0.5
+
+sensors:
+  - type: camera
+    position: [0.1, 0, 0.05]
+    orientation: [0, 0, 0]
+  - type: imu
+    position: [0, 0, 0.05]
+    orientation: [0, 0, 0]
+
+actuators:
+  - type: motor
+    position: [-0.1, 0.05, 0]
+    orientation: [0, 0, 0]
+  - type: motor
+    position: [-0.1, -0.05, 0]
+    orientation: [0, 0, 0]
+  - type: servo
+    position: [0.1, 0, 0]
+    orientation: [0, 0, 0]

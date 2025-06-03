@@ -6,7 +6,7 @@ package_name = 'nevil_core'
 
 setup(
     name=package_name,
-    version='0.1.0',
+    version='0.0.1',
     packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -16,14 +16,14 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='user',
-    maintainer_email='user@todo.todo',
-    description='Core functionality and node management for Nevil-picar v2.0',
-    license='TODO: License declaration',
+    maintainer='Your Name',
+    maintainer_email='your.email@example.com',
+    description='Core package for Nevil robot',
+    license='Apache License 2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'system_manager = nevil_core.system_manager:main',
+            'setup_tools = nevil_core.setup_tools:main',
         ],
     },
 )

@@ -23,11 +23,6 @@
   <depend>nevil_interfaces</depend>
   <depend>nevil_navigation</depend>
   <depend>nevil_core</depend>
-  <depend>python3-numpy</depend>
-  <depend>python3-pyttsx3</depend>
-  <depend>python3-speechrecognition</depend>
-  <depend>python3-pyaudio</depend>
-  <depend>python3-openai</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
   <exec_depend>ros2launch</exec_depend>

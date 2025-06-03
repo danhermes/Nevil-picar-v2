@@ -1,0 +1,31 @@
+# Room Environment Model
+
+name: room
+version: 1.0
+
+dimensions:
+  length: 5.0
+  width: 5.0
+  height: 3.0
+
+walls:
+  - type: wall
+    position: [2.5, 0, 1.5]
+    dimensions: [5.0, 0.1, 3.0]
+  - type: wall
+    position: [-2.5, 0, 1.5]
+    dimensions: [5.0, 0.1, 3.0]
+  - type: wall
+    position: [0, 2.5, 1.5]
+    dimensions: [0.1, 5.0, 3.0]
+  - type: wall
+    position: [0, -2.5, 1.5]
+    dimensions: [0.1, 5.0, 3.0]
+
+objects:
+  - type: box
+    position: [1.0, 1.0, 0.5]
+    dimensions: [1.0, 1.0, 1.0]
+  - type: cylinder
+    position: [-1.0, -1.0, 0.5]
+    dimensions: [0.5, 1.0]

@@ -1,0 +1,17 @@
+hardware:
+  motors:
+    left_pin: 27
+    right_pin: 17
+    pwm_frequency: 1000
+  servo:
+    pin: 23
+    min_angle: -45
+    max_angle: 45
+  ultrasonic:
+    trigger_pin: 23
+    echo_pin: 24
+  camera:
+    resolution:
+      width: 640
+      height: 480
+    framerate: 30

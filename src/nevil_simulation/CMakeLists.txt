@@ -133,4 +133,30 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+ament_export_dependencies(tf2_ros)
+
+# Install scripts
+install(DIRECTORY
+  scripts
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install scripts
+install(DIRECTORY
+  scripts
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install scripts
+install(DIRECTORY
+  scripts
+  DESTINATION share/${PROJECT_NAME}
+)
+
+# Install scripts
+install(DIRECTORY
+  scripts
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ament_package()

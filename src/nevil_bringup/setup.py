@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'nevil_cli = nevil_bringup.cli:main',
+            'system_monitor.py = nevil_bringup.system_monitor:main',
+            'nevil_cli = nevil_bringup.nevil_cli:main',
         ],
     },
 )

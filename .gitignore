@@ -43,3 +43,12 @@ Thumbs.db
 # Project specific files
 gpt_examples/img_input.jpg
 .roo/mcp.json
+
+#ROS2
+build/ROS2
+install/
+log/
+
+#venv
+nevil_venv/
+nevil2env/

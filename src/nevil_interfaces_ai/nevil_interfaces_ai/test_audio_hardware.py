@@ -59,26 +59,41 @@ class AudioHardwareTest(Node):
         try:
             # Print environment configuration
             self.get_logger().info('Environment configuration:')
-            self.get_logger().info(f'  OPENAI_API_KEY: {"Set" if "OPENAI_API_KEY" in os.environ else "Not set"} (for language processing, not needed for Whisper)')
+            self.get_logger().info(f'  OPENAI_API_KEY: {"Set" if "OPENAI_API_KEY" in os.environ else "Not set"} (required for OpenAI Whisper API)')
             self.get_logger().info(f'  SPEECH_RECOGNITION_LANGUAGE: {get_env_var("SPEECH_RECOGNITION_LANGUAGE", "en")}')
             self.get_logger().info(f'  SPEECH_RECOGNITION_ENERGY_THRESHOLD: {get_env_var("SPEECH_RECOGNITION_ENERGY_THRESHOLD", 300)}')
             self.get_logger().info(f'  SPEECH_SYNTHESIS_VOICE: {get_env_var("SPEECH_SYNTHESIS_VOICE", "onyx")}')
-            self.get_logger().info(f'  WHISPER_MODEL: {get_env_var("WHISPER_MODEL", "small")} (offline, no API key needed)')
+            self.get_logger().info(f'  WHISPER_MODEL: {get_env_var("WHISPER_MODEL", "small")} (used for local Whisper)')
             
             # Test 1: Speech synthesis
             self.get_logger().info('Test 1: Speech synthesis')
             self.audio_hw.speak_text("Hello, I am Nevil. Testing audio hardware interface.")
             time.sleep(1.0)
+            self.audio_hw.speak_text("Say something, yo.")
             
             # Test 2: Speech recognition
             self.get_logger().info('Test 2: Speech recognition')
-            self.get_logger().info('Please speak something...')
+            self.get_logger().info('Please say something...')
             audio = self.audio_hw.listen_for_speech(timeout=5.0, phrase_time_limit=5.0)
             
             if audio:
-                # Test 3: Speech recognition with Whisper
-                self.get_logger().info('Test 3: Speech recognition with Whisper')
+                # Test 3: Speech recognition (will use OpenAI Whisper API as primary method)
+                from audio_hardware_interface import OPENAI_AVAILABLE, WHISPER_AVAILABLE
+                
+                self.get_logger().info('Test 3: Speech recognition with auto API selection')
+                
+                # Use recognize_speech with 'auto' API selection
+                # This will automatically use OpenAI Whisper API as primary method if available
                 text = self.audio_hw.recognize_speech(audio, api='auto')
+                
+                # Log which API was likely used based on environment
+                if OPENAI_AVAILABLE and self.audio_hw.openai_api_key:
+                    self.get_logger().info('Used OpenAI Whisper API as primary STT method')
+                elif WHISPER_AVAILABLE:
+                    self.get_logger().info('Used local Whisper as fallback STT method')
+                else:
+                    self.get_logger().info('Used Google/Sphinx as fallback STT method')
+                
                 self.get_logger().info(f'Recognized: {text}')
                 
                 # Test 4: Repeat what was heard

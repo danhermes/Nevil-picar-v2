@@ -69,6 +69,12 @@ WHISPER_MODEL=small  # Options: tiny, base, small, medium, large
 
 ## Usage
 
+### Test the audio hardware interface
+
+```python
+python3 src/nevil_interfaces_ai/nevil_interfaces_ai/test_audio_hardware.py
+```
+
 ### Initialization
 
 ```python

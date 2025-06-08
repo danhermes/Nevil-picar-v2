@@ -15,6 +15,18 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.logging import get_logger
+from io import BytesIO
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Try to import OpenAI for cloud-based Whisper API
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
 
 # Define a local get_env_var function
 def get_env_var(name, default=None):
@@ -110,14 +122,16 @@ class AudioHardwareInterface:
         self.tts_voice = get_env_var('SPEECH_SYNTHESIS_VOICE', self.DEFAULT_TTS_VOICE)
         self.whisper_model = get_env_var('WHISPER_MODEL', self.DEFAULT_WHISPER_MODEL)
         
-        # Note: OpenAI API key is not needed for Whisper (offline speech-to-text)
-        # but may be needed for other OpenAI services like GPT models
+        # Load OpenAI API key for TTS and STT services
         self.openai_api_key = get_env_var('OPENAI_API_KEY', None)
         if self.openai_api_key:
             os.environ["OPENAI_API_KEY"] = self.openai_api_key
-            self.logger.info('OpenAI API key loaded from environment (for language processing)')
+            self.logger.info('OpenAI API key loaded from environment for TTS and STT services')
         elif "OPENAI_API_KEY" in os.environ:
-            self.logger.info('Using OpenAI API key from system environment (for language processing)')
+            self.openai_api_key = os.environ["OPENAI_API_KEY"]
+            self.logger.info('Using OpenAI API key from system environment for TTS and STT services')
+        else:
+            self.logger.warn('No OpenAI API key found. OpenAI TTS and STT services will not be available.')
         
         # Check if audio libraries are available
         if not AUDIO_LIBS_AVAILABLE:
@@ -370,6 +384,55 @@ class AudioHardwareInterface:
             self.logger.error(f'Failed to listen for speech: {e}')
             return None
     
+    def whisper_API_stt(self, audio, language=None):
+        """
+        Speech to Text using OpenAI's Whisper API.
+        
+        Args:
+            audio: Audio data to transcribe
+            language: Language code (defaults to self.language if None)
+            
+        Returns:
+            Transcribed text or False if failed
+        """
+        if self.simulation_mode or audio is None:
+            # In simulation mode, return mock text
+            self.logger.debug('Simulation: STT with OpenAI Whisper API')
+            return "This is simulated speech to text"
+        
+        # Use default language if not specified
+        if language is None:
+            language = self.language
+        
+        # Check if OpenAI API is available
+        if not OPENAI_AVAILABLE or not self.openai_api_key:
+            self.logger.error('OpenAI API not available or API key not set')
+            return False
+        
+        try:
+            # Create OpenAI client
+            client = OpenAI(api_key=self.openai_api_key)
+            
+            # Prepare audio data for OpenAI API
+            wav_data = BytesIO(audio.get_wav_data())
+            wav_data.name = "speech.wav"
+            
+            # Call OpenAI Whisper API
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=wav_data,
+                language=language if len(language) == 2 else None,
+                prompt="this is the conversation between me and a robot"
+            )
+            
+            text = transcript.text.strip()
+            self.logger.debug(f'OpenAI Whisper API transcribed: {text}')
+            return text
+            
+        except Exception as e:
+            self.logger.error(f'STT error with OpenAI Whisper API: {e}')
+            return False
+    
     def recognize_speech(self, audio, language=None, use_online=True, api='auto'):
         """
         Recognize speech with proper mutex handling.
@@ -378,7 +441,7 @@ class AudioHardwareInterface:
             audio: Audio data to recognize
             language: Language code (defaults to self.language if None)
             use_online: Whether to use online recognition
-            api: API to use for online recognition ('whisper', 'google', 'auto', etc.)
+            api: API to use for online recognition ('openai', 'whisper-local', 'google', 'auto', etc.)
         
         Returns:
             Recognized text
@@ -415,70 +478,101 @@ class AudioHardwareInterface:
         # In hardware mode, recognize speech with mutex protection
         try:
             with self.hardware_mutex:
-                # Determine which API to use
-                if api == 'auto':
-                    # Auto-select the best available API
-                    if WHISPER_AVAILABLE and use_online:
-                        api = 'whisper'
-                    elif use_online:
-                        api = 'google'
+                # Try OpenAI Whisper API first for 'auto' or 'openai' api options
+                if (api == 'auto' or api == 'openai') and OPENAI_AVAILABLE and self.openai_api_key and use_online:
+                    self.logger.debug('Using OpenAI Whisper API as primary STT method')
+                    result = self.whisper_API_stt(audio, language)
+                    if result:
+                        return result
                     else:
-                        api = 'sphinx'
+                        self.logger.debug('OpenAI Whisper API failed, falling back to other methods')
+                        # If api was specifically 'openai', don't continue to fallbacks
+                        if api == 'openai':
+                            return ""
                 
-                # Use the selected API
-                if api == 'whisper' and WHISPER_AVAILABLE:
-                    self.logger.debug('Using Whisper for speech recognition')
+                # # Determine which API to use for fallback
+                # if api == 'auto':
+                #     # Auto-select the best available API for fallback
+                #     if WHISPER_AVAILABLE:
+                #         api = 'whisper-local'
+                #     elif use_online:
+                #         api = 'google'
+                #     else:
+                #         api = 'sphinx'
+                
+                # # Use the selected API for fallback
+                # if api == 'whisper-local' and WHISPER_AVAILABLE:
+                #     self.logger.debug('Using local Whisper for speech recognition')
                     
-                    # Save audio to a temporary file for Whisper
-                    import tempfile
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-                        temp_filename = temp_audio.name
+                #     # Save audio to a temporary file for Whisper
+                #     import tempfile
+                #     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+                #         temp_filename = temp_audio.name
                         
-                    # Write audio data to the temporary file
-                    with open(temp_filename, "wb") as f:
-                        f.write(audio.get_wav_data())
+                #     # Write audio data to the temporary file
+                #     with open(temp_filename, "wb") as f:
+                #         f.write(audio.get_wav_data())
                     
-                    try:
-                        # Load Whisper model from environment variable
-                        model = whisper.load_model(self.whisper_model)
+                #     try:
+                #         # Load Whisper model from environment variable
+                #         model = whisper.load_model(self.whisper_model)
                         
-                        # Transcribe the audio
-                        result = model.transcribe(temp_filename, language=language if len(language) == 2 else None)
-                        text = result["text"].strip()
+                #         # Transcribe the audio
+                #         result = model.transcribe(temp_filename, language=language if len(language) == 2 else None)
+                #         text = result["text"].strip()
                         
-                        # Clean up the temporary file
-                        os.remove(temp_filename)
-                    except Exception as e:
-                        self.logger.error(f'Whisper transcription error: {e}')
-                        # Clean up the temporary file
-                        if os.path.exists(temp_filename):
-                            os.remove(temp_filename)
-                        # Fall back to Google if online is allowed
-                        if use_online:
-                            self.logger.debug('Falling back to Google Speech Recognition')
-                            text = self.recognizer.recognize_google(audio, language=lang_code)
-                        else:
-                            raise
+                #         # Clean up the temporary file
+                #         os.remove(temp_filename)
+                #         return text
+                #     except Exception as e:
+                #         self.logger.error(f'Local Whisper transcription error: {e}')
+                #         # Clean up the temporary file
+                #         if os.path.exists(temp_filename):
+                #             os.remove(temp_filename)
+                #         # Continue to fallback methods
                 
-                elif api == 'google' and use_online:
-                    self.logger.debug('Using Google Speech Recognition')
-                    text = self.recognizer.recognize_google(audio, language=lang_code)
+                # if api == 'google' and use_online:
+                #     self.logger.debug('Using Google Speech Recognition')
+                #     try:
+                #         text = self.recognizer.recognize_google(audio, language=lang_code)
+                #         return text
+                #     except Exception as e:
+                #         self.logger.error(f'Google Speech Recognition error: {e}')
+                #         # Continue to fallback methods
                 
-                elif api == 'sphinx' or not use_online:
-                    self.logger.debug('Using Sphinx (offline) Speech Recognition')
-                    # Note: Sphinx might need specific language models installed
-                    text = self.recognizer.recognize_sphinx(audio)
+                # if api == 'sphinx' or not use_online:
+                #     self.logger.debug('Using Sphinx (offline) Speech Recognition')
+                #     try:
+                #         # Note: Sphinx might need specific language models installed
+                #         text = self.recognizer.recognize_sphinx(audio)
+                #         return text
+                #     except Exception as e:
+                #         self.logger.error(f'Sphinx Speech Recognition error: {e}')
+                #         # Continue to fallback methods
                 
-                else:
-                    # Default fallback
-                    self.logger.debug('Using default Speech Recognition method')
-                    if use_online:
-                        text = self.recognizer.recognize_google(audio, language=lang_code)
-                    else:
-                        text = self.recognizer.recognize_sphinx(audio)
+                # # Final fallback - try any available method
+                # self.logger.debug('Using fallback Speech Recognition methods')
                 
-                self.logger.debug(f'Recognized text: {text}')
-                return text
+                # # Try Google if online is allowed
+                # if use_online:
+                #     try:
+                #         text = self.recognizer.recognize_google(audio, language=lang_code)
+                #         self.logger.debug(f'Fallback Google recognized: {text}')
+                #         return text
+                #     except Exception:
+                #         pass
+                
+                # # Try Sphinx as last resort
+                # try:
+                #     text = self.recognizer.recognize_sphinx(audio)
+                #     self.logger.debug(f'Fallback Sphinx recognized: {text}')
+                #     return text
+                # except Exception:
+                #     pass
+                
+                # If all methods fail, return empty string
+                self.logger.error('All speech recognition methods failed')
+                return ""
         except sr.UnknownValueError:
             self.logger.debug('Speech not recognized')
             return ""
@@ -501,7 +595,7 @@ class AudioHardwareInterface:
         
         Args:
             text: Text to speak
-            voice: Voice to use (optional)
+            voice: Voice to use (optional, defaults to self.tts_voice)
             wait: Whether to wait for speech to complete (default: True)
         """
         if self.simulation_mode:
@@ -514,11 +608,82 @@ class AudioHardwareInterface:
             with self.hardware_mutex:
                 self.logger.debug(f'Speaking text: {text}')
                 
-                # Use the appropriate TTS engine
+                # Use voice parameter if provided, otherwise use default
+                tts_voice = voice if voice else self.tts_voice
+                
+                # Try OpenAI TTS (Whisper/Onyx) first if available
+                if OPENAI_AVAILABLE and self.openai_api_key:
+                    try:
+                        self.logger.debug(f'Using OpenAI TTS with voice: {tts_voice}')
+                        
+                        # Create OpenAI client
+                        client = OpenAI(api_key=self.openai_api_key)
+                        
+                        # Create temp directory if it doesn't exist
+                        import os
+                        temp_dir = os.path.join(os.getcwd(), "tts_temp")
+                        os.makedirs(temp_dir, exist_ok=True)
+                        
+                        # Create unique filename
+                        import uuid
+                        unique_id = str(uuid.uuid4())
+                        output_file = os.path.join(temp_dir, f"tts_{unique_id}.mp3")
+                        
+                        # Generate speech using OpenAI TTS API with streaming response
+                        # This is the key to avoiding hanging - use streaming response
+                        with client.audio.speech.with_streaming_response.create(
+                            model="tts-1",
+                            voice="onyx",  # Hardcode to onyx as in v1.0
+                            input=text,
+                            response_format="mp3",
+                            speed=0.9
+                        ) as response:
+                            response.stream_to_file(output_file)
+                        
+                        self.logger.debug(f'TTS audio saved to {output_file}')
+                        
+                        # Play the audio file using pygame if available
+                        try:
+                            import pygame
+                            pygame.mixer.init()
+                            pygame.mixer.music.load(output_file)
+                            pygame.mixer.music.play()
+                            while pygame.mixer.music.get_busy():
+                                time.sleep(0.1)
+                            pygame.mixer.quit()
+                        except ImportError:
+                            self.logger.debug('Pygame not available, trying to play with Music class')
+                            try:
+                                from robot_hat import Music
+                                music = Music()
+                                music.music_play(output_file)
+                                while music.pygame.mixer.music.get_busy():
+                                    time.sleep(0.1)
+                                music.music_stop()
+                            except ImportError:
+                                self.logger.error('Neither pygame nor robot_hat Music available for mp3 playback')
+                                # Continue to fallback methods
+                        except Exception as e:
+                            self.logger.error(f'Failed to play mp3: {e}')
+                            # Continue to fallback methods
+                        
+                        # Clean up temporary file
+                        try:
+                            os.remove(output_file)
+                        except Exception as e:
+                            self.logger.error(f'Failed to remove temporary file: {e}')
+                        
+                        return  # Successfully used OpenAI TTS
+                    except Exception as e:
+                        self.logger.error(f'Failed to use OpenAI TTS: {e}')
+                        self.logger.debug('Falling back to other TTS methods')
+                        # Continue to fallback methods
+                
+                # Fallback to robot_hat TTS or pyttsx3
                 if ROBOT_HAT_AVAILABLE and isinstance(self.tts, TTS):
                     # Use robot_hat TTS
-                    voice_to_use = voice if voice else self.tts_voice
-                    self.tts.say(text, voice=voice_to_use)
+                    # Note: Robot HAT TTS doesn't support voice parameter
+                    self.tts.say(text)
                 else:
                     # Use pyttsx3 as fallback
                     if voice and hasattr(self.tts, 'getProperty'):
@@ -562,8 +727,8 @@ class AudioHardwareInterface:
                 sample_rate = wf.getframerate()
                 
                 # Create a stream
-                stream = self.pyaudio.open(
-                    format=self.pyaudio.get_format_from_width(sample_width),
+                stream = self.audio.open(
+                    format=self.audio.get_format_from_width(sample_width),
                     channels=channels,
                     rate=sample_rate,
                     output=True
@@ -594,9 +759,31 @@ class AudioHardwareInterface:
             Audio data (and saves to file if file_path is provided)
         """
         if self.simulation_mode:
-            # In simulation mode, just log the duration
+            # In simulation mode, create an empty file and log the duration
             self.logger.debug(f'Simulation: Recording audio for {duration} seconds')
             time.sleep(duration)  # Simulate recording time
+            
+            # In simulation mode, create an empty audio file if path is provided
+            if file_path:
+                try:
+                    # Create a simple WAV file with silence
+                    sample_rate = 16000
+                    channels = 1
+                    sample_width = 2  # 16-bit
+                    
+                    # Create 1 second of silence
+                    silence_data = b'\x00' * (sample_rate * channels * sample_width)
+                    
+                    wf = wave.open(file_path, 'wb')
+                    wf.setnchannels(channels)
+                    wf.setsampwidth(sample_width)
+                    wf.setframerate(sample_rate)
+                    wf.writeframes(silence_data)
+                    wf.close()
+                    self.logger.debug(f'Saved simulated audio to {file_path}')
+                except Exception as e:
+                    self.logger.error(f'Failed to create simulated audio file: {e}')
+            
             return None
         
         # In hardware mode, record audio with mutex protection
@@ -605,7 +792,7 @@ class AudioHardwareInterface:
                 self.logger.debug(f'Recording audio for {duration} seconds')
                 
                 # Create a stream
-                stream = self.pyaudio.open(
+                stream = self.audio.open(
                     format=self.format,
                     channels=self.channels,
                     rate=self.sample_rate,
@@ -627,7 +814,7 @@ class AudioHardwareInterface:
                 if file_path:
                     wf = wave.open(file_path, 'wb')
                     wf.setnchannels(self.channels)
-                    wf.setsampwidth(self.pyaudio.get_sample_size(self.format))
+                    wf.setsampwidth(self.audio.get_sample_size(self.format))
                     wf.setframerate(self.sample_rate)
                     wf.writeframes(b''.join(frames))
                     wf.close()
@@ -636,6 +823,28 @@ class AudioHardwareInterface:
                 return frames
         except Exception as e:
             self.logger.error(f'Failed to record audio: {e}')
+            
+            # If hardware recording fails but a file path was provided, create a silent file
+            if file_path:
+                try:
+                    # Create a simple WAV file with silence
+                    sample_rate = 16000
+                    channels = 1
+                    sample_width = 2  # 16-bit
+                    
+                    # Create 1 second of silence
+                    silence_data = b'\x00' * (sample_rate * channels * sample_width)
+                    
+                    wf = wave.open(file_path, 'wb')
+                    wf.setnchannels(channels)
+                    wf.setsampwidth(sample_width)
+                    wf.setframerate(sample_rate)
+                    wf.writeframes(silence_data)
+                    wf.close()
+                    self.logger.debug(f'Saved fallback silent audio to {file_path}')
+                except Exception as e2:
+                    self.logger.error(f'Failed to create fallback audio file: {e2}')
+            
             return None
     
     def set_speech_recognition_parameters(self, energy_threshold=None, pause_threshold=None, dynamic_energy=None):
@@ -669,28 +878,55 @@ class AudioHardwareInterface:
         except Exception as e:
             self.logger.error(f'Failed to set speech recognition parameters: {e}')
     
-    def listen_and_recognize(self, timeout=10.0, phrase_time_limit=10.0, language=None, use_online=True, api='auto'):
-        """
-        Listen for speech and recognize it in one step.
+    # def listen_and_stt(self, timeout=10.0, phrase_time_limit=10.0, language=None):
+    #     """
+    #     Listen for speech and transcribe it using OpenAI Whisper API in one step.
         
-        Args:
-            timeout: Maximum time to wait for speech (seconds)
-            phrase_time_limit: Maximum time for a phrase (seconds)
-            language: Language code (defaults to self.language if None)
-            use_online: Whether to use online recognition
-            api: API to use for online recognition ('whisper', 'google', 'auto', etc.)
+    #     Args:
+    #         timeout: Maximum time to wait for speech (seconds)
+    #         phrase_time_limit: Maximum time for a phrase (seconds)
+    #         language: Language code (defaults to self.language if None)
         
-        Returns:
-            Recognized text
-        """
-        # Listen for speech
-        audio = self.listen_for_speech(timeout, phrase_time_limit)
+    #     Returns:
+    #         Transcribed text or empty string if failed
+    #     """
+    #     # Listen for speech
+    #     audio = self.listen_for_speech(timeout, phrase_time_limit)
         
-        # Recognize speech if audio was captured
-        if audio:
-            return self.recognize_speech(audio, language, use_online, api)
-        else:
-            return ""
+    #     # Transcribe speech if audio was captured
+    #     if audio:
+    #         result = self.stt(audio, language)
+    #         if result:
+    #             return result
+    #         else:
+    #             # Fall back to recognize_speech if STT fails
+    #             self.logger.warn('STT failed, falling back to recognize_speech')
+    #             return self.recognize_speech(audio, language)
+    #     else:
+    #         return ""
+    
+    # def listen_and_recognize(self, timeout=10.0, phrase_time_limit=10.0, language=None, use_online=True, api='auto'):
+    #     """
+    #     Listen for speech and recognize it in one step.
+        
+    #     Args:
+    #         timeout: Maximum time to wait for speech (seconds)
+    #         phrase_time_limit: Maximum time for a phrase (seconds)
+    #         language: Language code (defaults to self.language if None)
+    #         use_online: Whether to use online recognition
+    #         api: API to use for online recognition ('openai', 'whisper-local', 'google', 'auto', etc.)
+        
+    #     Returns:
+    #         Recognized text
+    #     """
+    #     # Listen for speech
+    #     audio = self.listen_for_speech(timeout, phrase_time_limit)
+        
+    #     # Recognize speech if audio was captured
+    #     if audio:
+    #         return self.recognize_speech(audio, language, use_online, api)
+    #     else:
+    #         return ""
     
     def cleanup(self):
         """
@@ -745,9 +981,45 @@ def main(args=None):
         print("  pip install SpeechRecognition pyaudio")
         if not ROBOT_HAT_AVAILABLE:
             print("  pip install pyttsx3")  # Fallback TTS
-        print("For Whisper support (recommended):")
+        print("For local Whisper support:")
         print("  pip install openai-whisper")
+        print("For OpenAI Whisper API support (recommended):")
+        print("  pip install openai python-dotenv")
+        print("  Add OPENAI_API_KEY to your .env file")
         return
+    
+    # Check if python-dotenv is installed
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        print("python-dotenv is not installed")
+        print("Please install it to load environment variables from .env file:")
+        print("  pip install python-dotenv")
+        return
+    
+    # Check for ffmpeg (needed for mp3 to wav conversion)
+    ffmpeg_available = False
+    try:
+        import subprocess
+        subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        ffmpeg_available = True
+        print("ffmpeg is available for audio format conversion")
+    except (subprocess.SubprocessError, FileNotFoundError):
+        print("ffmpeg is not installed or not in PATH")
+        print("For better audio handling with OpenAI TTS, install ffmpeg:")
+        print("  sudo apt-get install ffmpeg  # On Debian/Ubuntu")
+        print("  brew install ffmpeg  # On macOS with Homebrew")
+    
+    # Check for pygame (fallback for mp3 playback)
+    pygame_available = False
+    try:
+        import pygame
+        pygame_available = True
+        print("pygame is available for direct mp3 playback")
+    except ImportError:
+        print("pygame is not installed")
+        print("For direct mp3 playback with OpenAI TTS, install pygame:")
+        print("  pip install pygame")
     
     # Initialize ROS2
     rclpy.init(args=args)
@@ -762,26 +1034,106 @@ def main(args=None):
         # Test the audio hardware interface
         node.get_logger().info('Testing audio hardware interface...')
         
-        # Test speaker
-        hw.speak_text("Hello, I am Nevil. Testing audio hardware interface.")
+        # Log environment configuration
+        node.get_logger().info('Environment configuration:')
+        if hw.openai_api_key:
+            node.get_logger().info('  OPENAI_API_KEY: Set (available for TTS and STT)')
+        else:
+            node.get_logger().info('  OPENAI_API_KEY: Not set (required for OpenAI Whisper API)')
+        node.get_logger().info(f'  SPEECH_RECOGNITION_LANGUAGE: {hw.language}')
+        node.get_logger().info(f'  SPEECH_RECOGNITION_ENERGY_THRESHOLD: {hw.recognizer.energy_threshold}')
+        node.get_logger().info(f'  SPEECH_SYNTHESIS_VOICE: {hw.tts_voice}')
+        node.get_logger().info(f'  WHISPER_MODEL: {hw.whisper_model} (used for local Whisper)')
+        
+        # Test 1: Speech synthesis
+        node.get_logger().info('Test 1: Speech synthesis')
+        if OPENAI_AVAILABLE and hw.openai_api_key:
+            node.get_logger().info('Using OpenAI TTS (Whisper/Onyx) as primary option')
+            hw.speak_text("Hello, I am Nevil. Testing OpenAI TTS with Onyx voice.", voice="onyx")
+        else:
+            node.get_logger().info('OpenAI API not available, using fallback TTS')
+            hw.speak_text("Hello, I am Nevil. Testing audio hardware interface.")
+        
         time.sleep(1.0)
         
-        # Test microphone
-        node.get_logger().info('Please speak something...')
+        # Test 2: Speech recognition
+        node.get_logger().info('Test 2: Speech recognition')
+        node.get_logger().info('Please say something...')
         audio = hw.listen_for_speech(timeout=5.0)
-        if audio:
-            # Use Whisper if available
-            if WHISPER_AVAILABLE:
-                node.get_logger().info('Using Whisper for speech recognition')
-                text = hw.recognize_speech(audio, api='whisper')
-            else:
-                node.get_logger().info('Whisper not available, using fallback recognition')
-                text = hw.recognize_speech(audio)
-                
-            node.get_logger().info(f'Recognized: {text}')
-            hw.speak_text(f"You said: {text}")
         
-        node.get_logger().info('Audio hardware interface test completed')
+        # Test 3: Speech-to-text conversion
+        node.get_logger().info('Test 3: Speech recognition with auto API selection')
+        text = ""
+        if audio:
+            # Determine which API to use based on availability
+            if OPENAI_AVAILABLE and hw.openai_api_key:
+                node.get_logger().info('Using OpenAI Whisper API for speech recognition (primary option)')
+                text = hw.recognize_speech(audio, api='openai')
+                if not text:
+                    node.get_logger().info('OpenAI Whisper API failed, falling back to local methods')
+                    if WHISPER_AVAILABLE:
+                        node.get_logger().info('Used local Whisper as fallback STT method')
+                        text = hw.recognize_speech(audio, api='whisper-local')
+                    else:
+                        node.get_logger().info('Used Google/Sphinx as fallback STT method')
+                        text = hw.recognize_speech(audio)
+            elif WHISPER_AVAILABLE:
+                node.get_logger().info('Using local Whisper for speech recognition (primary fallback)')
+                text = hw.recognize_speech(audio, api='whisper-local')
+            else:
+                node.get_logger().info('Using Google/Sphinx speech recognition (secondary fallback)')
+                text = hw.recognize_speech(audio)
+            
+            node.get_logger().info(f'Recognized: {text}')
+        
+        # Test 4: Response with TTS
+        node.get_logger().info('Test 4: Repeat what was heard')
+        if text:
+            # Use Onyx voice for the response if OpenAI TTS is available
+            if OPENAI_AVAILABLE and hw.openai_api_key:
+                node.get_logger().info('Using OpenAI TTS (Onyx) for response')
+                hw.speak_text(f"You said: {text}", voice="onyx")
+            else:
+                hw.speak_text(f"You said: {text}")
+        else:
+            hw.speak_text("I didn't hear anything.")
+        
+        # Test 5: Audio recording
+        node.get_logger().info('Test 5: Audio recording')
+        node.get_logger().info('Recording for 3 seconds...')
+        recording_path = os.path.join(os.getcwd(), "test_recording.wav")
+        hw.record_audio(duration=3.0, file_path=recording_path)
+        node.get_logger().info(f'Recording saved to {recording_path}')
+        
+        # Test 6: Audio playback
+        node.get_logger().info('Test 6: Audio playback')
+        node.get_logger().info('Playing back the recording...')
+        hw.play_audio_file(recording_path)
+        
+        node.get_logger().info('All tests completed')
+        
+        # Print summary
+        node.get_logger().info('Test Summary:')
+        node.get_logger().info('- TTS: ' + ('OpenAI Whisper/Onyx (primary)' if OPENAI_AVAILABLE and hw.openai_api_key else
+                                          'Robot HAT TTS' if ROBOT_HAT_AVAILABLE else
+                                          'pyttsx3 (fallback)'))
+        
+        # Audio format conversion summary
+        if OPENAI_AVAILABLE and hw.openai_api_key:
+            try:
+                import subprocess
+                subprocess.run(["ffmpeg", "-version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                node.get_logger().info('- Audio Format: ffmpeg available for mp3 to wav conversion')
+            except (subprocess.SubprocessError, FileNotFoundError):
+                try:
+                    import pygame
+                    node.get_logger().info('- Audio Format: pygame available for direct mp3 playback')
+                except ImportError:
+                    node.get_logger().info('- Audio Format: No mp3 support, TTS may be limited')
+        
+        node.get_logger().info('- STT: ' + ('OpenAI Whisper API (primary)' if OPENAI_AVAILABLE and hw.openai_api_key else
+                                          'Local Whisper (fallback)' if WHISPER_AVAILABLE else
+                                          'Google/Sphinx (fallback)'))
     except KeyboardInterrupt:
         node.get_logger().info('Test interrupted')
     finally:

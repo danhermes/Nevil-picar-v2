@@ -61,6 +61,12 @@ It works with both the physical robot and the simulation environment.
 - **nevil_interfaces_ai_with_simulation.launch.py**: Launch the AI interfaces with the simulation
   ```
   ros2 launch nevil_interfaces_ai nevil_interfaces_ai_with_simulation.launch.py
+
+### Test the audio hardware interface
+
+```python
+python3 src/nevil_interfaces_ai/nevil_interfaces_ai/test_audio_hardware.py
+```
   ```
 
 ### Launch Parameters

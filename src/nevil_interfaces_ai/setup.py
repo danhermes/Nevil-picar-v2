@@ -11,7 +11,10 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=[
+        'setuptools',
+        'python-dotenv',
+    ],
     zip_safe=True,
     maintainer='user',
     maintainer_email='user@example.com',
@@ -24,6 +27,9 @@ setup(
             'speech_recognition_node = nevil_interfaces_ai.speech_recognition_node:main',
             'speech_synthesis_node = nevil_interfaces_ai.speech_synthesis_node:main',
             'dialog_manager_node = nevil_interfaces_ai.dialog_manager_node:main',
+            'audio_hardware_interface_test = nevil_interfaces_ai.audio_hardware_interface:main',
+            'test_audio_hardware = nevil_interfaces_ai.test_audio_hardware:main',
+            'test_env_loading = nevil_interfaces_ai.test_env_loading:main',
         ],
     },
 )

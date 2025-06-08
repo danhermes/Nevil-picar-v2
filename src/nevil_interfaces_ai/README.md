@@ -38,6 +38,17 @@ It works with both the physical robot and the simulation environment.
 - **Speech Synthesis**: Converts responses to speech
 - **Dialog Manager**: Maintains conversation context and manages multi-turn dialogs
 
+### Hardware Interfaces
+
+- **Audio Hardware Interface**: Provides thread-safe access to microphone and speaker hardware
+  - Supports speech recognition with OpenAI Whisper integration
+  - Supports speech synthesis with robot_hat TTS integration
+  - Handles audio recording and playback with proper mutex handling
+  - Includes simulation mode for development without hardware
+  - Provides fallback mechanisms when hardware or libraries are not available
+  - Thread-safe design for real-time performance
+  - For detailed documentation, see [AudioHardwareInterface Documentation](nevil_interfaces_ai/README_audio_hardware_interface.md)
+
 ## Usage
 
 ### Launch Files
@@ -58,8 +69,36 @@ It works with both the physical robot and the simulation environment.
 - `use_online_recognition`: Whether to use online speech recognition (true) or offline (false)
 - `use_online_tts`: Whether to use online text-to-speech (true) or offline (false)
 - `use_cloud_ai`: Whether to use cloud AI for natural language processing (true) or local (false)
-- `api_key`: API key for cloud services
 - `environment`: Simulation environment to use (empty, maze, obstacle_course)
+
+### Environment Variables
+
+The package can also be configured using environment variables in a `.env` file at the root of the project. This is especially useful for storing sensitive information like API keys.
+
+Example `.env` file:
+
+```
+# OpenAI API Keys (for language processing, not needed for Whisper)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Speech Recognition Settings
+SPEECH_RECOGNITION_LANGUAGE=en
+SPEECH_RECOGNITION_ENERGY_THRESHOLD=300
+SPEECH_RECOGNITION_PAUSE_THRESHOLD=0.5
+SPEECH_RECOGNITION_DYNAMIC_ENERGY=true
+
+# Speech Synthesis Settings
+SPEECH_SYNTHESIS_VOICE=onyx
+SPEECH_SYNTHESIS_RATE=200
+SPEECH_SYNTHESIS_VOLUME=1.0
+
+# Whisper Settings (offline speech-to-text, no API key needed)
+WHISPER_MODEL=small  # Options: tiny, base, small, medium, large
+```
+
+For a complete list of available configuration options, see the [AudioHardwareInterface Documentation](nevil_interfaces_ai/README_audio_hardware_interface.md).
+
+For detailed information on building and using environment variables, see the [Build Environment Variables Documentation](../../docs/BUILD_ENVIRONMENT_VARIABLES.md).
 
 ## Examples
 
@@ -165,9 +204,12 @@ if __name__ == '__main__':
 - ROS2 Humble
 - Python 3.8+
 - SpeechRecognition
-- pyttsx3
 - PyAudio
-- OpenAI API (optional)
+- robot_hat (for hardware access)
+- pyttsx3 (fallback for speech synthesis)
+- OpenAI Whisper (optional, for improved offline speech recognition - no API key needed)
+- OpenAI API (optional, for natural language processing - requires API key)
+- python-dotenv (for loading environment variables from .env file)
 
 ## License
 

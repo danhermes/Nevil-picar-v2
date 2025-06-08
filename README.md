@@ -221,6 +221,7 @@ For more detailed information, refer to the documentation:
 - [Troubleshooting](docs/7_troubleshooting.md)
 - [Build System](build/README.md)
 - [Build Summary](build/NEVIL_BUILD_SUMMARY.md)
+- [Environment Variables](docs/BUILD_ENVIRONMENT_VARIABLES.md)
 
 ## License
 

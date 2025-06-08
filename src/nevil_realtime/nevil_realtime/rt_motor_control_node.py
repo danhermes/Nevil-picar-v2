@@ -14,6 +14,7 @@ from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 # Import the real-time configuration manager
 from nevil_realtime.rt_config_manager import RTConfigManager
+from nevil_realtime.rt_hardware_interface import RTHardwareInterface
 
 
 class RTMotorControlNode(Node):
@@ -106,9 +107,8 @@ class RTMotorControlNode(Node):
         self.current_distance = float('inf')
         self.emergency_stop = False
         
-        # Initialize hardware interface (simulated)
-        self.left_motor_speed = 0.0
-        self.right_motor_speed = 0.0
+        # Initialize hardware interface
+        self.hardware_interface = RTHardwareInterface(self)
         
         # Initialize latency tracking
         self.callback_latencies = []
@@ -266,10 +266,8 @@ class RTMotorControlNode(Node):
         left_motor = int(left_clamped * 100.0)
         right_motor = int(right_clamped * 100.0)
         
-        # In a real implementation, this would use the RTHardwareInterface
-        # with proper mutex handling
-        self.left_motor_speed = left_motor
-        self.right_motor_speed = right_motor
+        # Use the RTHardwareInterface to control the motors
+        self.hardware_interface.set_motor_speeds(left_clamped, right_clamped)
         
         # Debug output (uncomment for debugging)
         # self.get_logger().debug(
@@ -288,9 +286,8 @@ class RTMotorControlNode(Node):
         
         # If we haven't received a command in 1 second, stop the robot
         if time_since_last_cmd.nanoseconds > 1e9:
-            if self.left_motor_speed != 0 or self.right_motor_speed != 0:
-                self.get_logger().warn('Command timeout, stopping robot')
-                self.set_motor_speeds(0.0, 0.0)
+            self.get_logger().warn('Command timeout, stopping robot')
+            self.hardware_interface.stop()
     
     def update_latency_stats(self, latency):
         """Update latency statistics."""
@@ -344,6 +341,7 @@ def main(args=None):
         pass
     finally:
         # Clean up
+        node.hardware_interface.cleanup()
         node.destroy_node()
         rclpy.shutdown()
 

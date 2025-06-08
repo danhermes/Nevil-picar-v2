@@ -25,6 +25,7 @@ setup(
             'rt_config_manager = nevil_realtime.rt_config_manager:main',
             'rt_sensor_node = nevil_realtime.rt_sensor_node:main',
             'rt_motor_control_node = nevil_realtime.rt_motor_control_node:main',
+            'rt_hardware_interface_test = nevil_realtime.rt_hardware_interface:main',
         ],
     },
 )

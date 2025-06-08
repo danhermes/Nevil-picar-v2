@@ -6,15 +6,31 @@ import json
 import threading
 import queue
 import numpy as np
-import pyttsx3
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
+# Define a local get_env_var function
+def get_env_var(name, default=None):
+    """
+    Get an environment variable, with fallback to a default value.
+    
+    Args:
+        name: Name of the environment variable
+        default: Default value if the environment variable is not set
+        
+    Returns:
+        The value of the environment variable, or the default value
+    """
+    return os.environ.get(name, default)
+
 from std_msgs.msg import Bool, String
 from sensor_msgs.msg import Audio
 from nevil_interfaces_ai.msg import VoiceResponse, TextResponse, DialogState
+
+# Import the audio hardware interface
+from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
 
 class SpeechSynthesisNode(Node):
     """
@@ -28,14 +44,13 @@ class SpeechSynthesisNode(Node):
     def __init__(self):
         super().__init__('speech_synthesis_node')
         
-        # Declare parameters
+        # Declare parameters with defaults from environment variables
         self.declare_parameter('use_online_tts', False)
-        self.declare_parameter('online_service', 'google')  # 'google', 'azure', etc.
-        self.declare_parameter('voice_id', '')
-        self.declare_parameter('speaking_rate', 1.0)
-        self.declare_parameter('pitch', 1.0)
-        self.declare_parameter('volume', 1.0)
-        self.declare_parameter('api_key', '')
+        self.declare_parameter('online_service', get_env_var('SPEECH_SYNTHESIS_SERVICE', 'google'))  # 'google', 'azure', etc.
+        self.declare_parameter('voice_id', get_env_var('SPEECH_SYNTHESIS_VOICE', ''))
+        self.declare_parameter('speaking_rate', float(get_env_var('SPEECH_SYNTHESIS_RATE', 200)) / 200.0)  # Convert from words per minute to rate multiplier
+        self.declare_parameter('pitch', float(get_env_var('SPEECH_SYNTHESIS_PITCH', 1.0)))
+        self.declare_parameter('volume', float(get_env_var('SPEECH_SYNTHESIS_VOLUME', 1.0)))
         
         # Get parameters
         self.use_online = self.get_parameter('use_online_tts').value
@@ -44,7 +59,13 @@ class SpeechSynthesisNode(Node):
         self.speaking_rate = self.get_parameter('speaking_rate').value
         self.pitch = self.get_parameter('pitch').value
         self.volume = self.get_parameter('volume').value
-        self.api_key = self.get_parameter('api_key').value
+        
+        # Get OpenAI API key from environment (may be needed for online TTS services)
+        self.api_key = get_env_var('OPENAI_API_KEY', '')
+        if self.api_key and self.use_online:
+            self.get_logger().info('OpenAI API key loaded from environment (for online TTS services)')
+            # Set it in the environment for TTS services to use
+            os.environ["OPENAI_API_KEY"] = self.api_key
         
         # Create callback groups
         self.cb_group_subs = MutuallyExclusiveCallbackGroup()
@@ -88,8 +109,8 @@ class SpeechSynthesisNode(Node):
             callback_group=self.cb_group_subs
         )
         
-        # Initialize TTS engine
-        self.init_tts_engine()
+        # Initialize audio hardware interface
+        self.audio_hw = AudioHardwareInterface(self)
         
         # Initialize state variables
         self.is_speaking = False
@@ -105,37 +126,7 @@ class SpeechSynthesisNode(Node):
         
         self.get_logger().info('Speech synthesis node initialized')
     
-    def init_tts_engine(self):
-        """Initialize the text-to-speech engine."""
-        try:
-            if not self.use_online:
-                # Initialize offline TTS engine (pyttsx3)
-                self.engine = pyttsx3.init()
-                
-                # Configure voice properties
-                self.engine.setProperty('rate', int(self.speaking_rate * 200))  # Default rate is 200
-                self.engine.setProperty('volume', self.volume)
-                
-                # Set voice if specified
-                if self.voice_id:
-                    voices = self.engine.getProperty('voices')
-                    for voice in voices:
-                        if self.voice_id in voice.id:
-                            self.engine.setProperty('voice', voice.id)
-                            break
-                
-                self.get_logger().info('Initialized offline TTS engine (pyttsx3)')
-            else:
-                # Online TTS would be initialized here
-                # This would typically involve setting up API clients
-                self.get_logger().info(f'Initialized online TTS engine ({self.online_service})')
-        
-        except Exception as e:
-            self.get_logger().error(f'Error initializing TTS engine: {e}')
-            # Fallback to offline TTS if online fails
-            if self.use_online:
-                self.use_online = False
-                self.init_tts_engine()
+    # The init_tts_engine method is no longer needed as we're using the AudioHardwareInterface
     
     def voice_response_callback(self, msg):
         """Handle voice response messages."""
@@ -198,38 +189,22 @@ class SpeechSynthesisNode(Node):
             text = speech_data['text']
             voice_id = speech_data['voice_id']
             speaking_rate = speech_data['speaking_rate']
-            pitch = speech_data['pitch']
             volume = speech_data['volume']
             
             # Update speaking status
             self.is_speaking = True
             self.publish_speaking_status(True)
             
-            if not self.use_online:
-                # Use offline TTS (pyttsx3)
-                
-                # Update engine properties if they've changed
-                self.engine.setProperty('rate', int(speaking_rate * 200))
-                self.engine.setProperty('volume', volume)
-                
-                if voice_id:
-                    voices = self.engine.getProperty('voices')
-                    for voice in voices:
-                        if voice_id in voice.id:
-                            self.engine.setProperty('voice', voice.id)
-                            break
-                
-                # Speak the text
-                self.engine.say(text)
-                self.engine.runAndWait()
-            else:
-                # Online TTS would be implemented here
-                # This would typically involve API calls and audio playback
-                self.get_logger().info(f'Would use online TTS for: {text}')
-                
-                # Simulate speech duration for now
-                import time
-                time.sleep(len(text) * 0.07)  # Rough estimate of speech duration
+            # Configure the audio hardware interface
+            if voice_id:
+                self.audio_hw.set_speaker_voice(voice_id)
+            
+            self.audio_hw.set_speech_rate(int(speaking_rate * 200))  # Convert to words per minute
+            self.audio_hw.set_speech_volume(volume)
+            
+            # Use the audio hardware interface to speak the text
+            # Use the new voice parameter and wait parameter
+            self.audio_hw.speak_text(text, voice=voice_id, wait=True)
             
             # Update speaking status
             self.is_speaking = False
@@ -254,12 +229,8 @@ class SpeechSynthesisNode(Node):
         if self.speech_thread.is_alive():
             self.speech_thread.join(timeout=1.0)
         
-        # Clean up TTS engine
-        if hasattr(self, 'engine') and not self.use_online:
-            try:
-                self.engine.stop()
-            except:
-                pass
+        # Clean up the audio hardware interface
+        self.audio_hw.cleanup()
 
 
 def main(args=None):

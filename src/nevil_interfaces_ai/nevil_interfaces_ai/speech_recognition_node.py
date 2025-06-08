@@ -12,9 +12,26 @@ from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
+# Define a local get_env_var function
+def get_env_var(name, default=None):
+    """
+    Get an environment variable, with fallback to a default value.
+    
+    Args:
+        name: Name of the environment variable
+        default: Default value if the environment variable is not set
+        
+    Returns:
+        The value of the environment variable, or the default value
+    """
+    return os.environ.get(name, default)
+
 from std_msgs.msg import Bool, String
 from sensor_msgs.msg import Audio
 from nevil_interfaces_ai.msg import VoiceCommand, TextCommand, DialogState
+
+# Import the audio hardware interface
+from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
 
 class SpeechRecognitionNode(Node):
     """
@@ -28,14 +45,13 @@ class SpeechRecognitionNode(Node):
     def __init__(self):
         super().__init__('speech_recognition_node')
         
-        # Declare parameters
+        # Declare parameters with defaults from environment variables
         self.declare_parameter('use_online_recognition', True)
-        self.declare_parameter('online_api', 'google')  # 'google', 'whisper', etc.
-        self.declare_parameter('language', 'en-US')
-        self.declare_parameter('energy_threshold', 300)
-        self.declare_parameter('pause_threshold', 0.8)
-        self.declare_parameter('dynamic_energy_threshold', True)
-        self.declare_parameter('api_key', '')
+        self.declare_parameter('online_api', get_env_var('SPEECH_RECOGNITION_API', 'auto'))  # 'google', 'whisper', 'auto'
+        self.declare_parameter('language', get_env_var('SPEECH_RECOGNITION_LANGUAGE', 'en-US'))
+        self.declare_parameter('energy_threshold', int(get_env_var('SPEECH_RECOGNITION_ENERGY_THRESHOLD', 300)))
+        self.declare_parameter('pause_threshold', float(get_env_var('SPEECH_RECOGNITION_PAUSE_THRESHOLD', 0.8)))
+        self.declare_parameter('dynamic_energy_threshold', get_env_var('SPEECH_RECOGNITION_DYNAMIC_ENERGY', 'true').lower() in ['true', '1', 'yes'])
         
         # Get parameters
         self.use_online = self.get_parameter('use_online_recognition').value
@@ -44,7 +60,14 @@ class SpeechRecognitionNode(Node):
         self.energy_threshold = self.get_parameter('energy_threshold').value
         self.pause_threshold = self.get_parameter('pause_threshold').value
         self.dynamic_energy = self.get_parameter('dynamic_energy_threshold').value
-        self.api_key = self.get_parameter('api_key').value
+        
+        # Note: OpenAI API key is not needed for Whisper (offline speech-to-text)
+        # but may be needed for other OpenAI services like GPT models
+        self.api_key = get_env_var('OPENAI_API_KEY', '')
+        if self.api_key:
+            self.get_logger().info('OpenAI API key loaded from environment (for language processing)')
+            # Set it in the environment for potential OpenAI API calls
+            os.environ["OPENAI_API_KEY"] = self.api_key
         
         # Create callback groups
         self.cb_group_subs = MutuallyExclusiveCallbackGroup()
@@ -86,11 +109,15 @@ class SpeechRecognitionNode(Node):
             callback_group=self.cb_group_subs
         )
         
-        # Initialize speech recognition
-        self.recognizer = sr.Recognizer()
-        self.recognizer.energy_threshold = self.energy_threshold
-        self.recognizer.pause_threshold = self.pause_threshold
-        self.recognizer.dynamic_energy_threshold = self.dynamic_energy
+        # Initialize audio hardware interface
+        self.audio_hw = AudioHardwareInterface(self)
+        
+        # Configure speech recognition parameters
+        self.audio_hw.set_speech_recognition_parameters(
+            energy_threshold=self.energy_threshold,
+            pause_threshold=self.pause_threshold,
+            dynamic_energy=self.dynamic_energy
+        )
         
         # Initialize state variables
         self.is_listening = False
@@ -145,25 +172,26 @@ class SpeechRecognitionNode(Node):
     
     def listen_microphone(self):
         """Listen to the microphone and add audio to the processing queue."""
-        try:
-            with sr.Microphone() as source:
-                self.get_logger().info('Adjusting for ambient noise...')
-                self.recognizer.adjust_for_ambient_noise(source, duration=1)
+        self.get_logger().info('Listening for speech...')
+        
+        while self.is_listening:
+            try:
+                # Use the audio hardware interface to listen for speech
+                # Use the new adjust_for_ambient_noise parameter
+                audio = self.audio_hw.listen_for_speech(
+                    timeout=10.0,
+                    phrase_time_limit=10.0,
+                    adjust_for_ambient_noise=True
+                )
                 
-                self.get_logger().info('Listening for speech...')
-                while self.is_listening:
-                    try:
-                        audio = self.recognizer.listen(source, timeout=10.0, phrase_time_limit=10.0)
-                        self.audio_queue.put(audio)
-                        self.get_logger().info('Audio captured, added to processing queue')
-                    except sr.WaitTimeoutError:
-                        self.get_logger().info('No speech detected, continuing to listen')
-                    except Exception as e:
-                        self.get_logger().error(f'Error capturing audio: {e}')
-                        break
-        except Exception as e:
-            self.get_logger().error(f'Error initializing microphone: {e}')
-            self.is_listening = False
+                if audio:
+                    self.audio_queue.put(audio)
+                    self.get_logger().info('Audio captured, added to processing queue')
+                else:
+                    self.get_logger().info('No speech detected, continuing to listen')
+            except Exception as e:
+                self.get_logger().error(f'Error capturing audio: {e}')
+                break
     
     def audio_processing_thread(self):
         """Process audio from the queue in a separate thread."""
@@ -186,40 +214,30 @@ class SpeechRecognitionNode(Node):
     
     def process_audio(self, audio):
         """Process audio data and convert to text."""
+        if audio is None:
+            return
+            
         try:
-            # Publish raw audio data if needed
-            # self.publish_raw_audio(audio)
+            # Use the audio hardware interface to recognize speech
+            # Use the updated API with auto selection and language format
+            text = self.audio_hw.recognize_speech(
+                audio,
+                language=self.language,  # The interface will handle language code conversion
+                use_online=self.use_online,
+                api='auto' if self.online_api == 'auto' else self.online_api
+            )
             
-            # Recognize speech
-            if self.use_online and self.online_api == 'google':
-                text = self.recognizer.recognize_google(audio, language=self.language)
-            elif self.use_online and self.online_api == 'whisper':
-                text = self.recognizer.recognize_whisper(audio, language=self.language)
+            if text:
+                self.get_logger().info(f'Recognized: {text}')
+                
+                # Create and publish voice command
+                self.publish_voice_command(text, audio)
+                
+                # Also publish as text command for processing
+                self.publish_text_command(text)
             else:
-                # Fallback to offline recognition
-                text = self.recognizer.recognize_sphinx(audio, language=self.language)
-            
-            self.get_logger().info(f'Recognized: {text}')
-            
-            # Create and publish voice command
-            self.publish_voice_command(text, audio)
-            
-            # Also publish as text command for processing
-            self.publish_text_command(text)
-            
-        except sr.UnknownValueError:
-            self.get_logger().info('Speech not recognized')
-        except sr.RequestError as e:
-            self.get_logger().error(f'Error with speech recognition service: {e}')
-            # Fallback to offline recognition if online fails
-            if self.use_online:
-                try:
-                    text = self.recognizer.recognize_sphinx(audio, language=self.language)
-                    self.get_logger().info(f'Fallback recognized: {text}')
-                    self.publish_voice_command(text, audio)
-                    self.publish_text_command(text)
-                except Exception as e2:
-                    self.get_logger().error(f'Fallback recognition also failed: {e2}')
+                self.get_logger().info('Speech not recognized')
+                
         except Exception as e:
             self.get_logger().error(f'Error processing audio: {e}')
     
@@ -298,6 +316,9 @@ class SpeechRecognitionNode(Node):
         self.stop_listening()
         if self.audio_thread.is_alive():
             self.audio_thread.join(timeout=1.0)
+        
+        # Clean up the audio hardware interface
+        self.audio_hw.cleanup()
 
 
 def main(args=None):

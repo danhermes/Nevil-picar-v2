@@ -69,6 +69,24 @@
       "labels": ["documentation", "launch-file"],
       "fixVersions": ["2.0.1"],
       "links": [{"type": "relates to", "issue": "NEVIL-1"}]
+    },
+    {
+      "id": "NEVIL-5",
+      "name": "Missing Hardware Interface",
+      "type": "Bug",
+      "summary": "Implement RTHardwareInterface to control physical robot",
+      "description": "The documentation describes a hardware abstraction layer that allows the system to control the physical PiCar-X robot, but the actual implementation is missing. The rt_motor_control_node.py file contains a comment: \"In a real implementation, this would use the RTHardwareInterface with proper mutex handling\", but this interface is not implemented.\n\n**Impact:**\n- The system cannot control the physical robot despite documentation claiming this functionality\n- The Picarx class and robot_hat library are available but not integrated into the codebase\n- Core functionality described in the architecture documentation is not implemented\n\n**Required Implementation:**\n1. Create RTHardwareInterface class that interfaces with the robot_hat library\n2. Implement methods for motor control, servo control, and sensor reading\n3. Integrate with the existing hardware abstraction layer\n4. Update the rt_motor_control_node.py to use the RTHardwareInterface\n5. Test with the physical PiCar-X robot",
+      "priority": "Critical",
+      "status": "Done",
+      "assignee": "AI Assistant",
+      "reporter": "Dan",
+      "created": "2025-06-08T08:33:00+01:00",
+      "updated": "2025-06-08T08:38:00+01:00",
+      "resolution": "Implemented RTHardwareInterface class that interfaces with the Picarx class and robot_hat library. The implementation includes thread-safe methods for motor control, steering, distance sensing, and camera control with proper mutex handling. Updated rt_motor_control_node.py to use this interface and added an entry point in setup.py for testing the hardware interface.",
+      "components": ["nevil_realtime", "hardware_interface"],
+      "labels": ["bug", "hardware", "critical-functionality"],
+      "fixVersions": ["2.0.0"],
+      "links": []
     }
   ]
 }

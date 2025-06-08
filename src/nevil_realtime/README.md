@@ -76,7 +76,21 @@ The `RTExecutor` class extends ROS2's executor model to provide deterministic ex
 
 ### Real-time Hardware Interface
 
-The `RTHardwareInterface` class provides low-latency access to the PiCar-X hardware with proper mutex handling and bounded execution time.
+The `RTHardwareInterface` class provides low-latency access to the PiCar-X hardware with proper mutex handling and bounded execution time. It serves as the hardware abstraction layer (HAL) between the ROS2 nodes and the physical robot hardware.
+
+Features include:
+- Thread-safe hardware access with mutex protection
+- Support for both hardware and simulation modes
+- Comprehensive error handling and logging
+- Motor control, steering, distance sensing, and camera control
+- Clean separation between ROS2 control logic and hardware implementation
+
+For detailed documentation, see [RTHardwareInterface Documentation](nevil_realtime/README_hardware_interface.md).
+
+To test the hardware interface:
+```bash
+cd ~/nevil/src && source install/setup.bash && python3 -c "from nevil_realtime.rt_hardware_interface import main; main()"
+```
 
 ### Configuration System
 

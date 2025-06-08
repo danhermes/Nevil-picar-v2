@@ -17,6 +17,7 @@ The following launch configurations are available:
 
 1. **Full System Launch**: Starts all components of the Nevil-picar v2.0 system
    ```
+   ./nevil launch nevil_bringup full_system.launch.py
    ros2 launch nevil_bringup full_system.launch.py
    ```
 

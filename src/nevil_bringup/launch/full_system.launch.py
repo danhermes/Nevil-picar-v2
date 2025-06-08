@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
+print("*" * 80)
+print("LOADING MODIFIED FULL_SYSTEM.LAUNCH.PY")
+print("*" * 80)
+
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -13,8 +17,16 @@ def launch_setup(context, *args, **kwargs):
     """
     Launch setup function for the full system
     """
+    # Add debug logging
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger('nevil_launch')
+    logger.debug("Starting launch_setup function")
+    
     # Get package directories
+    logger.debug("Getting package directories")
     nevil_bringup_dir = get_package_share_directory('nevil_bringup')
+    logger.debug(f"nevil_bringup_dir: {nevil_bringup_dir}")
     nevil_core_dir = get_package_share_directory('nevil_core')
     nevil_navigation_dir = get_package_share_directory('nevil_navigation')
     nevil_perception_dir = get_package_share_directory('nevil_perception')
@@ -102,16 +114,27 @@ def launch_setup(context, *args, **kwargs):
         )
         actions.append(simulation_launch)
     
-    # Add system monitor node
+    # Add system monitor node - using cmd instead of executable
+    logger.debug("Setting up system_monitor node")
+    system_monitor_script = os.path.join(nevil_bringup_dir, 'scripts', 'system_monitor.py')
+    logger.debug(f"system_monitor_script path: {system_monitor_script}")
+    logger.debug(f"Does script exist? {os.path.exists(system_monitor_script)}")
+    
+    # Check if the script is executable
+    is_executable = os.access(system_monitor_script, os.X_OK)
+    logger.debug(f"Is script executable? {is_executable}")
+    
+    logger.debug("Creating Node with cmd parameter")
     system_monitor_node = Node(
         package='nevil_bringup',
-        executable='system_monitor.py',
         name='system_monitor',
         output='screen',
         parameters=[
             {'config_file': config_file}
-        ]
+        ],
+        cmd=['python3', system_monitor_script]
     )
+    logger.debug("Node created successfully")
     actions.append(system_monitor_node)
     
     return actions
@@ -120,7 +143,14 @@ def generate_launch_description():
     """
     Generate launch description for the full Nevil-picar v2.0 system
     """
+    # Add debug logging
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger('nevil_launch')
+    logger.debug("Starting generate_launch_description function")
+    
     # Include common launch file
+    logger.debug("Including common launch file")
     common_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
@@ -130,6 +160,7 @@ def generate_launch_description():
             ])
         ])
     )
+    logger.debug("Common launch file included")
     
     # Create the launch description
     ld = LaunchDescription([common_launch])

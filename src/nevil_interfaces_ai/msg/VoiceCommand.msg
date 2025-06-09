@@ -8,7 +8,7 @@ string recognized_text
 
 # Audio data (if needed for further processing)
 # This is optional and may be empty if only text is needed
-sensor_msgs/Audio audio_data
+nevil_interfaces_ai/Audio audio_data
 
 # Confidence level of recognition (0.0 to 1.0)
 float32 confidence

@@ -26,11 +26,14 @@ def get_env_var(name, default=None):
     return os.environ.get(name, default)
 
 from std_msgs.msg import Bool, String
-from sensor_msgs.msg import Audio
-from nevil_interfaces_ai.msg import VoiceResponse, TextResponse, DialogState
+from nevil_interfaces_ai.msg import Audio, VoiceResponse, TextResponse, DialogState
 
 # Import the audio hardware interface
-from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
+try:
+    from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
+except ImportError:
+    # Try relative import if package import fails
+    from .audio_hardware_interface import AudioHardwareInterface
 
 class SpeechSynthesisNode(Node):
     """

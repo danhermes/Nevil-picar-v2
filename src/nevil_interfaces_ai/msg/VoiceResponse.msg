@@ -8,7 +8,7 @@ string text_to_speak
 
 # Audio data (if pre-synthesized)
 # This is optional and may be empty if synthesis happens downstream
-sensor_msgs/Audio audio_data
+nevil_interfaces_ai/Audio audio_data
 
 # Voice parameters
 string voice_id              # Identifier for voice to use

@@ -25,6 +25,12 @@ find_package(nevil_realtime REQUIRED)
 find_package(action_msgs REQUIRED)
 find_package(rcl_interfaces REQUIRED)
 
+# TF2 dependencies
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_msgs REQUIRED)
+
 # Include directories
 include_directories(include)
 
@@ -36,6 +42,10 @@ ament_target_dependencies(motion_control_node
   geometry_msgs
   nevil_interfaces
   nevil_core
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  tf2_msgs
 )
 
 # Install C++ executables
@@ -50,6 +60,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   scripts/navigation_node.py
+  scripts/test_tf2_imports.py
   nevil_navigation/nevil_navigation_api/examples/basic_movement.py
   nevil_navigation/nevil_navigation_api/examples/complex_navigation.py
   nevil_navigation/nevil_navigation_api/examples/sensor_integration.py

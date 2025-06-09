@@ -87,6 +87,23 @@
       "labels": ["bug", "hardware", "critical-functionality"],
       "fixVersions": ["2.0.0"],
       "links": []
+    },
+    {
+      "id": "NEVIL-6",
+      "name": "Voice Control Node Separation",
+      "type": "Task",
+      "summary": "Separate Voice Control Node from AI Processing Node",
+      "description": "Currently, the Voice Control Node (N5) functionality is embedded within the `nevil_interfaces_ai` package, which doesn't align with the architectural design specified in `docs/Nevil_v2.0_Architectural_Overview.md`. The architecture specifies that the Voice Control Node (N5) should be separate from the AI Processing Node (N6).\n\n**Tasks:**\n\n1. Create a new package `nevil_voice_control` to contain all voice-related functionality:\n   - Move `speech_recognition_node.py` to the new package\n   - Move `speech_synthesis_node.py` to the new package\n   - Move voice-specific parts of `dialog_manager_node.py` to the new package\n   - Move `audio_hardware_interface.py` to the new package\n\n2. Update the interfaces between packages:\n   - Define clear message interfaces between `nevil_voice_control` and `nevil_interfaces_ai`\n   - Ensure proper topic/service/action definitions for cross-package communication\n\n3. Update launch files and dependencies:\n   - Update package.xml with appropriate dependencies\n   - Create launch files for the voice control nodes\n   - Update existing launch files that reference the moved nodes\n\n4. Testing:\n   - Test voice recognition functionality after the move\n   - Test speech synthesis functionality after the move\n   - Test integration with AI processing\n\nThis refactoring will bring the implementation in line with the architectural design, creating a cleaner separation of concerns between voice control and AI processing.",
+      "priority": "Medium",
+      "status": "To Do",
+      "assignee": null,
+      "reporter": "AI Assistant",
+      "created": "2025-06-08T19:43:00+01:00",
+      "updated": "2025-06-08T19:43:00+01:00",
+      "components": ["nevil_interfaces_ai", "architecture"],
+      "labels": ["refactoring", "architecture", "voice-control"],
+      "fixVersions": ["2.1.0"],
+      "links": []
     }
   ]
 }

@@ -1,0 +1,27 @@
+{
+  "core": {
+    "total": 0.0,
+    "timestamp": "2025-06-09T06:06:54.509228",
+    "report_path": "docs/tests/coverage/core"
+  },
+  "navigation": {
+    "total": 0.0,
+    "timestamp": "2025-06-09T06:06:58.959626",
+    "report_path": "docs/tests/coverage/navigation"
+  },
+  "perception": {
+    "total": 0.0,
+    "timestamp": "2025-06-09T06:07:03.134683",
+    "report_path": "docs/tests/coverage/perception"
+  },
+  "realtime": {
+    "total": 0.0,
+    "timestamp": "2025-06-09T06:07:06.582190",
+    "report_path": "docs/tests/coverage/realtime"
+  },
+  "simulation": {
+    "total": 0.0,
+    "timestamp": "2025-06-09T06:07:10.889849",
+    "report_path": "docs/tests/coverage/simulation"
+  }
+}

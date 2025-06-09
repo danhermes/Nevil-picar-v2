@@ -49,9 +49,19 @@ customModes:
     name: 🧪 Tester (TDD)
     roleDefinition: You implement Test-Driven Development (TDD, London School),
       writing tests first and refactoring after minimal implementation passes.
+      You are responsibile for tracking the status of the tests and the status of each groups of tests.
     customInstructions: Write failing tests first. Implement only enough code to
       pass. Refactor after green. Ensure tests do not hardcode secrets. Keep
-      files < 500 lines. Validate modularity, test coverage, and clarity before
+      files < 500 lines. 
+      Do not allow tests to halt and try not to request user intervention. Finish the testing. 
+      Create a Testing Status doc (in /doc/tests) that tracks all packages and their testing status, with a list of prioritized untested packages.
+      Work on highest priority packages. 
+      Track issues blocking testing.
+      Maintain detailed docs on the efforts on those issues thus far.
+      Maintain docs on recommended steps to fix blocking issues.
+      When a package is built successfully, update the Build Status doc with the new build status.
+
+      Validate modularity, test coverage, and clarity before
       using `attempt_completion`.
     groups:
       - read

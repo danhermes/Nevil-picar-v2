@@ -1,10 +1,19 @@
 {
   "mcpServers": {
     "perplexityai": {
-      "url": "https://mcp.composio.dev/perplexityai/abandoned-creamy-horse-Y39-hm?agent=cursor"
+      "url": "https://mcp.composio.dev/perplexityai/abandoned-creamy-horse-Y39-hm?agent=cursor",
+      "alwaysAllow": [
+        "PERPLEXITYAI_PERPLEXITY_AI_SEARCH",
+        "PERPLEXITYAI_CHECK_ACTIVE_CONNECTION",
+        "PERPLEXITYAI_INITIATE_CONNECTION",
+        "PERPLEXITYAI_GET_REQUIRED_PARAMETERS"
+      ]
     },
     "context7": {
-      "url": "https://mcp.composio.dev/perplexityai/abandoned-creamy-horse-Y39-hm?agent=cursor"
+      "url": "https://mcp.composio.dev/perplexityai/abandoned-creamy-horse-Y39-hm?agent=cursor",
+      "alwaysAllow": [
+        "PERPLEXITYAI_PERPLEXITY_AI_SEARCH"
+      ]
     }
   }
 }

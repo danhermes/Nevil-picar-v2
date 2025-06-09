@@ -1,4 +1,6 @@
 from setuptools import setup
+import os
+from glob import glob
 
 package_name = 'nevil_interfaces_ai'
 
@@ -10,6 +12,12 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        # Include launch files
+        (os.path.join('share', package_name, 'launch'),
+         glob(os.path.join('launch', '*.launch.py'))),
+        # Include scripts directory
+        (os.path.join('share', package_name, 'scripts'),
+         glob(os.path.join('scripts', '*.py'))),
     ],
     install_requires=[
         'setuptools',

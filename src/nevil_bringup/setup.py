@@ -5,26 +5,7 @@ package_name = 'nevil_bringup'
 setup(
     name=package_name,
     version='2.0.0',
-    packages=[package_name, 'scripts'],  # Add scripts directory as a package
-    data_files=[
-        ('share/ament_index/resource_index/packages',
-            ['resource/' + package_name]),
-        ('share/' + package_name, ['package.xml']),
-    ],
-    install_requires=['setuptools'],
-    zip_safe=True,
-    maintainer='Nevil Team',
-    maintainer_email='maintainer@example.com',
-    description='Integration package for the Nevil-picar v2.0 project',
-    license='MIT',
-    tests_require=['pytest'],
-    entry_points={
-        'console_scripts': [
-            'nevil_cli = nevil_bringup.nevil_cli:main',
-            'system_monitor = scripts.system_monitor:main',  # Add system_monitor entry point
-        ],
-    },
-    # Include directories in the package
+    packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -51,4 +32,19 @@ setup(
              'scripts/parameter_tuning_ui.py',
              'scripts/system_monitor_wrapper']),
     ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='Nevil Team',
+    maintainer_email='maintainer@example.com',
+    description='Integration package for the Nevil-picar v2.0 project',
+    license='MIT',
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+            'nevil_cli = nevil_bringup.scripts.nevil_cli:main',
+            'system_monitor = nevil_bringup.scripts.system_monitor:main',
+            'hardware_init = nevil_bringup.scripts.hardware_init:main',
+            'battery_monitor = nevil_bringup.scripts.battery_monitor:main',
+        ],
+    },
 )

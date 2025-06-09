@@ -124,7 +124,7 @@ def launch_setup(context, *args, **kwargs):
     is_executable = os.access(system_monitor_script, os.X_OK)
     logger.debug(f"Is script executable? {is_executable}")
     
-    logger.debug("Creating Node with cmd parameter")
+    logger.debug("Creating Node with executable parameter")
     system_monitor_node = Node(
         package='nevil_bringup',
         name='system_monitor',
@@ -132,7 +132,7 @@ def launch_setup(context, *args, **kwargs):
         parameters=[
             {'config_file': config_file}
         ],
-        cmd=['python3', system_monitor_script]
+        executable='system_monitor_wrapper'
     )
     logger.debug("Node created successfully")
     actions.append(system_monitor_node)

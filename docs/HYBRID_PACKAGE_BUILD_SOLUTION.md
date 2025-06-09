@@ -1,134 +1,168 @@
-# ROS2 Hybrid Package Build Solution: nevil_interfaces_ai
+# Nevil-picar-v2 Build Solution
 
-## Problem Summary
+## Issue Summary
 
-The `nevil_interfaces_ai` package failed to build due to duplicate CMake target errors when combining:
+When attempting to launch the full system using `ros2 launch nevil_bringup full_system.launch.py`, we encountered two issues:
 
-1. Interface generation with `rosidl_generate_interfaces`
-2. Python package installation with `ament_python_install_package`
+1. **Node constructor missing 'executable' parameter**:
+   ```
+   TypeError: Node.__init__() missing 1 required keyword-only argument: 'executable'
+   ```
 
-## Error Message
+2. **Executable not found in libexec directory**:
+   ```
+   executable 'system_monitor_wrapper' not found on the libexec directory '/home/dan/Nevil-picar-v2/install/nevil_bringup/lib/nevil_bringup'
+   ```
 
-```
-CMake Error: add_custom_target cannot create target "ament_cmake_python_copy_nevil_interfaces_ai" because another target with the same name already exists.
-```
+## Root Causes
 
-## Root Cause Analysis
+1. In the `full_system.launch.py` file, the Node constructor was using the `cmd` parameter instead of the required `executable` parameter. This is likely due to changes in the ROS2 API.
 
-When a ROS2 package combines both interface generation and Python package installation, and uses the same name for both:
+2. The `system_monitor_wrapper` script was not being installed to the expected location because it was not included in the list of programs to install in the `CMakeLists.txt` file.
 
-1. `rosidl_generate_interfaces(${PROJECT_NAME} ...)` creates CMake targets with names based on the project name
-2. `ament_python_install_package(${PROJECT_NAME})` also creates CMake targets with names based on the project name
-3. These targets collide, causing the build to fail
+## Solutions
 
-This issue only affected the `nevil_interfaces_ai` package because:
-- Other packages in the project either generated interfaces OR installed Python packages, but not both
-- Only `nevil_interfaces_ai` attempted to do both operations with the same name
+1. **Fixed Node constructor parameter**:
+   - Changed `cmd` parameter to `executable` parameter in the Node constructor in `src/nevil_bringup/launch/full_system.launch.py`.
 
-## Solution Implemented
+2. **Added script to installation list**:
+   - Added the `system_monitor_wrapper` script to the list of programs to install in `src/nevil_bringup/CMakeLists.txt`.
 
-The solution was to rename the Python package directory to avoid the name collision:
+## Steps to Reproduce the Fix
 
-```bash
-cd ~/Nevil-picar-v2/src/nevil_interfaces_ai
-mv nevil_interfaces_ai nevil_ai_pkg
-```
+1. Modify the `full_system.launch.py` file:
+   ```python
+   # Change from
+   system_monitor_node = Node(
+       package='nevil_bringup',
+       name='system_monitor',
+       output='screen',
+       parameters=[
+           {'config_file': config_file}
+       ],
+       cmd=['python3', system_monitor_script]
+   )
 
-And update the CMakeLists.txt to use the new directory name:
+   # To
+   system_monitor_node = Node(
+       package='nevil_bringup',
+       name='system_monitor',
+       output='screen',
+       parameters=[
+           {'config_file': config_file}
+       ],
+       executable='system_monitor_wrapper'
+   )
+   ```
 
-```cmake
-# Before:
-# ament_python_install_package(${PROJECT_NAME})
+2. Modify the `CMakeLists.txt` file:
+   ```cmake
+   # Change from
+   install(PROGRAMS
+     scripts/nevil_cli.py
+     scripts/system_monitor.py
+     DESTINATION lib/${PROJECT_NAME}
+   )
 
-# After:
-ament_python_install_package(nevil_ai_pkg)
-```
+   # To
+   install(PROGRAMS
+     scripts/nevil_cli.py
+     scripts/system_monitor.py
+     scripts/system_monitor_wrapper
+     DESTINATION lib/${PROJECT_NAME}
+   )
+   ```
 
-After making these changes, we cleaned the build artifacts and rebuilt the package:
+3. Rebuild the package:
+   ```bash
+   colcon build --packages-select nevil_bringup
+   ```
 
-```bash
-cd ~/Nevil-picar-v2
-rm -rf build/ install/ log/
-colcon build
-```
+4. Source the workspace setup file:
+   ```bash
+   source install/setup.bash
+   ```
 
-## Technical Details
-
-### How ROS2 Build System Creates Targets
-
-1. **Interface Generation Targets**:
-   - `rosidl_generate_interfaces(${PROJECT_NAME} ...)` creates targets like:
-     - `${PROJECT_NAME}`
-     - `${PROJECT_NAME}__rosidl_generator_c`
-     - `${PROJECT_NAME}__rosidl_typesupport_*`
-
-2. **Python Package Installation Targets**:
-   - `ament_python_install_package(${PACKAGE_NAME})` creates targets like:
-     - `ament_cmake_python_copy_${PACKAGE_NAME}`
-     - `ament_cmake_python_build_${PACKAGE_NAME}_egg`
-
-3. **When Names Collide**:
-   - If `${PROJECT_NAME}` and `${PACKAGE_NAME}` are the same, CMake tries to create targets with identical names
-   - CMake prohibits duplicate target names, causing the build to fail
-
-## Best Practices for Hybrid Packages
-
-1. **Separate Concerns**:
-   - Ideally, split interface definitions and implementation into separate packages
-   - Example: `my_interfaces` for messages/services and `my_implementation` for code
-
-2. **Use Distinct Names**:
-   - If combining in one package, use different names for the CMake project and Python package
-   - Follow a naming convention like `<package>_py` for Python packages
-
-3. **Document Relationships**:
-   - Clearly document the relationship between CMake project and Python package names
-   - Add comments in CMakeLists.txt explaining the naming strategy
-
-4. **Package Structure**:
-   - Keep interface definitions (msg, srv, action) at the top level
-   - Place Python implementation in a distinctly named subdirectory
-
-## Example Package Structure
-
-```
-nevil_interfaces_ai/
-├── CMakeLists.txt
-├── package.xml
-├── msg/
-│   ├── AICommand.msg
-│   └── ...
-├── srv/
-│   ├── AIQuery.srv
-│   └── ...
-├── action/
-│   └── ProcessDialog.action
-├── nevil_ai_pkg/  # Note: Different name from package
-│   ├── __init__.py
-│   ├── dialog_manager.py
-│   └── ...
-└── scripts/
-    ├── ai_interface_node.py
-    └── ...
-```
+5. Launch the full system:
+   ```bash
+   ros2 launch nevil_bringup full_system.launch.py
+   ```
 
 ## Lessons Learned
 
-1. **Understand Target Generation**:
-   - Be aware of how ROS2 build tools generate CMake targets
-   - Pay attention to naming patterns that could cause collisions
+1. **ROS2 Node API Changes**: The ROS2 Node constructor requires an `executable` parameter, not a `cmd` parameter. This is important to remember when working with ROS2 launch files.
 
-2. **Test Hybrid Packages Early**:
-   - Test the build process for hybrid packages early in development
-   - Identify and resolve naming conflicts before they become embedded in the codebase
+2. **Script Installation**: All scripts that are referenced in launch files must be properly installed to the expected location. This is done by adding them to the `install(PROGRAMS ...)` section in the `CMakeLists.txt` file.
 
-3. **Follow ROS2 Conventions**:
-   - When possible, follow the ROS2 convention of separating interfaces and implementation
-   - This naturally avoids name collisions and improves package organization
+3. **Build Process**: Always make sure to rebuild the package and source the workspace setup file after making changes to the launch files or CMakeLists.txt.
 
-## Recommendations for Future Development
+## Future Recommendations
 
-1. Create a template for hybrid packages that enforces proper naming conventions
-2. Add this issue to the project's troubleshooting guide
-3. Consider refactoring existing hybrid packages to follow the separate-package approach
-4. Implement a pre-commit hook or CI check to detect potential name collisions
+1. **Update Documentation**: Update the documentation to reflect the correct usage of the Node constructor in ROS2 launch files.
+
+2. **Add Tests**: Add tests to verify that all required scripts are properly installed and that the launch files are correctly configured.
+
+3. **Standardize Script Installation**: Establish a standard process for adding new scripts to ensure they are properly installed.
+
+4. **Automated Checks**: Implement automated checks to verify that all scripts referenced in launch files are included in the installation list.
+
+## Additional Issue: nevil_cli Executable Not Found
+
+When attempting to run the `nevil_cli` executable using `ros2 run nevil_bringup nevil_cli --help`, we encountered the following error:
+
+```
+No executable found
+```
+
+### Root Cause
+
+1. There were two implementations of the `nevil_cli` script:
+   - `nevil_bringup/nevil_cli.py` (simple implementation)
+   - `scripts/nevil_cli.py` (comprehensive implementation with more features)
+
+2. The entry point in `setup.py` was pointing to `nevil_bringup.nevil_cli:main`, but the script was being installed from `scripts/nevil_cli.py` to `lib/nevil_bringup/`.
+
+3. ROS2 was unable to find the executable because the entry point didn't match the installed script.
+
+### Solution
+
+1. **Updated entry point in setup.py**:
+   ```python
+   # Change from
+   'nevil_cli = nevil_bringup.nevil_cli:main',
+   
+   # To
+   'nevil_cli = scripts.nevil_cli:main',
+   ```
+
+2. **Created a symbolic link in CMakeLists.txt**:
+   ```cmake
+   # Create symbolic link for nevil_cli
+   install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
+     ${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/nevil_cli.py
+     ${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/nevil_cli
+   )")
+   ```
+
+### Steps to Reproduce the Fix
+
+1. Update the entry point in `setup.py` to point to the correct script.
+2. Add the symbolic link creation in `CMakeLists.txt`.
+3. Rebuild the package:
+   ```bash
+   colcon build --packages-select nevil_bringup
+   ```
+4. Source the workspace setup file:
+   ```bash
+   source install/setup.bash
+   ```
+5. Test the command:
+   ```bash
+   ros2 run nevil_bringup nevil_cli --help
+   ```
+
+### Lessons Learned
+
+1. **Entry Point Consistency**: Ensure that entry points in `setup.py` match the actual location of the scripts.
+2. **Symbolic Links**: Creating symbolic links without the `.py` extension is a common practice in ROS2 packages to make scripts executable with `ros2 run`.
+3. **Hybrid Build Systems**: When using both CMake and Python setuptools, ensure that the installation paths and entry points are consistent.

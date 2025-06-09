@@ -1,0 +1,1 @@
+../scripts/speech_synthesis_node.py

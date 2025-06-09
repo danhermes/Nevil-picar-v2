@@ -24,8 +24,15 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/nevil_cli.py
   scripts/system_monitor.py
+  scripts/system_monitor_wrapper
   DESTINATION lib/${PROJECT_NAME}
 )
+
+# Create symbolic link for nevil_cli
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
+  ${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/nevil_cli.py
+  ${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/nevil_cli
+)")
 
 # Install test files
 install(DIRECTORY

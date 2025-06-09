@@ -2,6 +2,13 @@
 
 Welcome to the official documentation for Nevil-picar v2.0, a multi-threaded, real-time robotic system built on the PiCar-X platform that integrates ROS2 with PREEMPT-RT for deterministic performance.
 
+**Full System Launch**: Starts all components of the Nevil-picar v2.0 system
+   ```
+   source ~/Nevil-picar-v2/install/setup.bash
+   source ./install/setup.bash
+
+   ros2 launch nevil_bringup full_system.launch.py
+
 ## Documentation Structure
 
 This documentation is organized into several sections to help you understand, use, and develop with Nevil-picar v2.0:

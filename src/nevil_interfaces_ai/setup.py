@@ -38,6 +38,7 @@ setup(
             'audio_hardware_interface_test = nevil_interfaces_ai.audio_hardware_interface:main',
             'test_audio_hardware = nevil_interfaces_ai.test_audio_hardware:main',
             'test_env_loading = nevil_interfaces_ai.test_env_loading:main',
+            'ai_interface_node = scripts.ai_interface_node:main',
         ],
     },
 )

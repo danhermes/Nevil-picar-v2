@@ -1,0 +1,1 @@
+../scripts/speech_recognition_node.py

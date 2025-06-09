@@ -16,8 +16,8 @@ def launch_setup(context, *args, **kwargs):
     # Get package directories
     nevil_bringup_dir = get_package_share_directory('nevil_bringup')
     nevil_core_dir = get_package_share_directory('nevil_core')
-    nevil_navigation_dir = get_package_share_directory('nevil_navigation')
-    nevil_perception_dir = get_package_share_directory('nevil_perception')
+    #nevil_navigation_dir = get_package_share_directory('nevil_navigation')
+    #nevil_perception_dir = get_package_share_directory('nevil_perception')
     nevil_interfaces_ai_dir = get_package_share_directory('nevil_interfaces_ai')
     nevil_realtime_dir = get_package_share_directory('nevil_realtime')
     
@@ -45,29 +45,29 @@ def launch_setup(context, *args, **kwargs):
     )
     actions.append(core_launch)
     
-    # Include the navigation launch file
-    navigation_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            os.path.join(nevil_navigation_dir, 'launch', 'nevil_navigation.launch.py')
-        ]),
-        launch_arguments={
-            'use_sim': 'false',
-            'config_file': config_file
-        }.items()
-    )
-    actions.append(navigation_launch)
+    # # Include the navigation launch file
+    # navigation_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource([
+    #         os.path.join(nevil_navigation_dir, 'launch', 'nevil_navigation.launch.py')
+    #     ]),
+    #     launch_arguments={
+    #         'use_sim': 'false',
+    #         'config_file': config_file
+    #     }.items()
+    # )
+    # actions.append(navigation_launch)
     
-    # Include the perception launch file
-    perception_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            os.path.join(nevil_perception_dir, 'launch', 'nevil_perception.launch.py')
-        ]),
-        launch_arguments={
-            'use_sim': 'false',
-            'config_file': config_file
-        }.items()
-    )
-    actions.append(perception_launch)
+    # # Include the perception launch file
+    # perception_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource([
+    #         os.path.join(nevil_perception_dir, 'launch', 'nevil_perception.launch.py')
+    #     ]),
+    #     launch_arguments={
+    #         'use_sim': 'false',
+    #         'config_file': config_file
+    #     }.items()
+    # )
+    # actions.append(perception_launch)
     
     # Include the AI interfaces launch file if voice is enabled
     if enable_voice.lower() in ['true', 't', 'yes', 'y', '1']:
@@ -98,7 +98,7 @@ def launch_setup(context, *args, **kwargs):
     # Add hardware initialization node
     hardware_init_node = Node(
         package='nevil_bringup',
-        executable='hardware_init.py',
+        executable='hardware_init',
         name='hardware_init',
         output='screen',
         parameters=[
@@ -110,7 +110,7 @@ def launch_setup(context, *args, **kwargs):
     # Add system monitor node
     system_monitor_node = Node(
         package='nevil_bringup',
-        executable='system_monitor.py',
+        executable='system_monitor',
         name='system_monitor',
         output='screen',
         parameters=[
@@ -123,7 +123,7 @@ def launch_setup(context, *args, **kwargs):
     # Add battery monitor node
     battery_monitor_node = Node(
         package='nevil_bringup',
-        executable='battery_monitor.py',
+        executable='battery_monitor',
         name='battery_monitor',
         output='screen',
         parameters=[

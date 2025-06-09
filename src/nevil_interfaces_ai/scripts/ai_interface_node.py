@@ -1,31 +1,185 @@
 #!/usr/bin/env python3
 
+import os
 import rclpy
 from rclpy.node import Node
+from rclpy.action import ActionServer
 from std_msgs.msg import String
+from nevil_interfaces_ai.action import ProcessDialog
+from dotenv import load_dotenv
 
 class AIInterfaceNode(Node):
     def __init__(self):
         super().__init__('ai_interface')
-        self.publisher_ = self.create_publisher(String, 'ai_status', 10)
-        self.timer = self.create_timer(1.0, self.timer_callback)
+        
+        # Load environment variables from .env file with absolute path
+        # Get the project root directory (assuming the script is in src/nevil_interfaces_ai/scripts)
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
+        dotenv_path = os.path.join(project_root, '.env')
+        self.get_logger().info(f'Loading .env file from: {dotenv_path}')
+        load_dotenv(dotenv_path=dotenv_path)
+        
+        # Publishers
+        self.text_response_pub = self.create_publisher(String, '/nevil/text_response', 10)
+        self.status_pub = self.create_publisher(String, 'ai_status', 10)
+        
+        # Subscribers
+        self.text_command_sub = self.create_subscription(
+            String,
+            '/nevil/text_command',
+            self.handle_text_command,
+            10
+        )
+        
+        # Action server for more complex dialog processing
+        self._action_server = ActionServer(
+            self,
+            ProcessDialog,
+            'process_dialog',
+            self.execute_dialog_callback
+        )
+        
+        # OpenAI API configuration
+        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        if not self.openai_api_key:
+            self.get_logger().error('OPENAI_API_KEY environment variable not set in .env file')
+            # For testing without OpenAI, we'll still allow the node to run
+        
         self.get_logger().info('AI Interface Node initialized')
-
-    def timer_callback(self):
-        msg = String()
-        msg.data = 'AI system active'
-        self.publisher_.publish(msg)
-        self.get_logger().debug('Published AI status')
+    
+    def handle_text_command(self, msg):
+        """Handle incoming text commands from speech recognition"""
+        self.get_logger().info(f'Received text command: {msg.data}')
+        
+        # Process the command with OpenAI or use a fallback
+        response = self.process_with_openai(msg.data)
+        
+        # Publish the response
+        response_msg = String()
+        response_msg.data = response
+        self.text_response_pub.publish(response_msg)
+        
+        # Also publish status update
+        status_msg = String()
+        status_msg.data = 'AI system processed command'
+        self.status_pub.publish(status_msg)
+    
+    def execute_dialog_callback(self, goal_handle):
+        """Handle dialog processing action requests"""
+        goal = goal_handle.request
+        self.get_logger().info(f'Processing dialog: {goal.initial_utterance}')
+        
+        # Initialize feedback
+        feedback_msg = ProcessDialog.Feedback()
+        feedback_msg.current_state = "processing"
+        feedback_msg.last_utterance = goal.initial_utterance
+        feedback_msg.turn_count = 1
+        feedback_msg.elapsed_time = 0.0
+        
+        # Send initial feedback
+        goal_handle.publish_feedback(feedback_msg)
+        
+        # Process the dialog with OpenAI
+        response = self.process_with_openai(goal.initial_utterance)
+        
+        # Update feedback
+        feedback_msg.current_state = "completed"
+        feedback_msg.last_utterance = response
+        feedback_msg.turn_count = 2
+        feedback_msg.elapsed_time = 1.0  # Approximate
+        goal_handle.publish_feedback(feedback_msg)
+        
+        # Initialize result
+        result = ProcessDialog.Result()
+        
+        # Set result fields
+        result.success = True
+        result.message = "Dialog processed successfully"
+        result.final_state = "completed"
+        result.dialog_summary = f"User: {goal.initial_utterance}, AI: {response}"
+        result.actions_taken = ["processed_text"]
+        
+        # Publish the response for TTS
+        response_msg = String()
+        response_msg.data = response
+        self.text_response_pub.publish(response_msg)
+        
+        goal_handle.succeed(result)
+        return result
+    
+    def process_with_openai(self, text):
+        """Process text with OpenAI API and return response"""
+        try:
+            if not self.openai_api_key:
+                self.get_logger().warning('OpenAI API key not set, using fallback response')
+                return self.generate_fallback_response(text)
+            
+            # Import here to avoid dependency issues if OpenAI is not installed
+            from openai import OpenAI
+            
+            # Initialize the client
+            client = OpenAI(api_key=self.openai_api_key)
+            
+            # Call OpenAI API with the latest client format
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant for a robot named Nevil. Keep responses concise and clear."},
+                    {"role": "user", "content": text}
+                ],
+                max_tokens=150  # Limit response length for faster processing
+            )
+            
+            # Extract and return the response text
+            response_text = response.choices[0].message.content
+            self.get_logger().info(f'OpenAI response: {response_text}')
+            return response_text
+        
+        except ImportError:
+            self.get_logger().error('OpenAI package not installed')
+            return self.generate_fallback_response(text)
+        except Exception as e:
+            self.get_logger().error(f'Error calling OpenAI API: {str(e)}')
+            return self.generate_fallback_response(text)
+    
+    def generate_fallback_response(self, text):
+        """Generate a fallback response when OpenAI is unavailable"""
+        # Simple keyword-based responses
+        text_lower = text.lower()
+        
+        if 'hello' in text_lower or 'hi' in text_lower:
+            return "Hello! I'm Nevil. How can I help you?"
+        
+        if 'name' in text_lower:
+            return "My name is Nevil. I'm a robot assistant."
+        
+        if 'help' in text_lower:
+            return "I can help you with information, navigation, or just have a conversation."
+        
+        if 'thank' in text_lower:
+            return "You're welcome! Is there anything else I can help with?"
+        
+        if 'move' in text_lower or 'go' in text_lower:
+            return "I understand you want me to move, but I need more specific instructions."
+        
+        if 'stop' in text_lower:
+            return "Stopping now."
+        
+        # Default response
+        return "I'm not sure how to respond to that. Could you rephrase your request?"
 
 def main(args=None):
     rclpy.init(args=args)
-    node = AIInterfaceNode()
+    
+    ai_interface_node = AIInterfaceNode()
+    
     try:
-        rclpy.spin(node)
+        rclpy.spin(ai_interface_node)
     except KeyboardInterrupt:
         pass
     finally:
-        node.destroy_node()
+        ai_interface_node.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':

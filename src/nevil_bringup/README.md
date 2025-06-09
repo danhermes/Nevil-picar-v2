@@ -15,10 +15,21 @@ The `nevil_bringup` package serves as the main integration point for the Nevil-p
 
 The following launch configurations are available:
 
+0. **Physical Robot Launch**: Starts the system on the physical robot
+
+   sudo chrt -f 85 bash -c "source /home/dan/Nevil-picar-v2/install/setup.bash && ros2 launch nevil_bringup physical_robot.launch.py"
+
+
+
+   source ~/Nevil-picar-v2/install/setup.bash && ros2 launch nevil_bringup physical_robot.launch.py
+
 1. **Full System Launch**: Starts all components of the Nevil-picar v2.0 system
    ```
-   ./nevil launch nevil_bringup full_system.launch.py
-   ./nevil launch nevil_bringup full_system.launch.py
+   source ~/Nevil-picar-v2/install/setup.bash
+   source ./install/setup.bash
+
+   ros2 launch nevil_bringup full_system.launch.py
+
    cd ~/nevil/src && source install/setup.bash && python3 -c "from nevil_realtime.rt_hardware_interface import main; main()"
    ros2 launch nevil_bringup full_system.launch.py
    ```

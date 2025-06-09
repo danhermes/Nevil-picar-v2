@@ -72,6 +72,13 @@ class DialogManager(Node):
             10
         )
         
+        self.text_command_pub = self.create_publisher(
+            TextCommand,
+            '/nevil/text_command',
+            10,
+            callback_group=self.cb_group_pubs
+        )
+        
         # Create subscribers
         self.text_command_sub = self.create_subscription(
             TextCommand,

@@ -118,4 +118,35 @@ def get_env_var(name, default=None, env_vars=None):
 env_vars = load_env_file()
 
 # Import hardware interfaces
-from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
+try:
+    # Try absolute import first (for installed package)
+    from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
+except ImportError:
+    # Fall back to relative import (for running from source)
+    try:
+        from .audio_hardware_interface import AudioHardwareInterface
+        logger.info("Using relative import for audio_hardware_interface")
+    except ImportError as e:
+        logger.error(f"Failed to import audio_hardware_interface: {e}")
+        # Create a dummy class to prevent further errors
+        class AudioHardwareInterface:
+            def __init__(self, *args, **kwargs):
+                logger.warning("Using dummy AudioHardwareInterface")
+
+# Import node modules
+try:
+    # Try absolute imports first (for installed package)
+    try:
+        from nevil_interfaces_ai.speech_recognition_node import main as speech_recognition_main
+        from nevil_interfaces_ai.speech_synthesis_node import main as speech_synthesis_main
+        from nevil_interfaces_ai.dialog_manager_node import main as dialog_manager_main
+        from nevil_interfaces_ai.text_command_processor import main as text_command_processor_main
+    except ImportError:
+        # Fall back to relative imports (for running from source)
+        from .speech_recognition_node import main as speech_recognition_main
+        from .speech_synthesis_node import main as speech_synthesis_main
+        from .dialog_manager_node import main as dialog_manager_main
+        from .text_command_processor import main as text_command_processor_main
+        logger.info("Using relative imports for node modules")
+except ImportError as e:
+    logger.warning(f"Error importing node modules: {e}")

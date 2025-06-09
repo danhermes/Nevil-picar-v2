@@ -44,6 +44,15 @@ nevil_interfaces <-- nevil_core <-- nevil_realtime <-- nevil_navigation
 | nevil_simulation | test_simulation_node.py | ✅ Passing | Fixed Python path issue |
 | nevil_interfaces_ai | test_message_definitions.py, test_service_definitions.py, test_action_definitions.py, test_audio_hardware.py, test_env_loading.py | ✅ Passing | Created interface tests and used existing functional tests |
 
+### Node Status
+
+| Package | Node | Status | Issues |
+|---------|------|--------|--------|
+| nevil_interfaces_ai | speech_recognition_node | ✅ Fixed | Fixed path in launch file and rebuilt with symlink install |
+| nevil_interfaces_ai | speech_synthesis_node | ✅ Fixed | Fixed path in launch file and rebuilt with symlink install |
+| nevil_interfaces_ai | dialog_manager_node | ✅ Fixed | Fixed path in launch file and rebuilt with symlink install |
+| nevil_interfaces_ai | text_command_processor | ✅ Fixed | Fixed path in launch file and rebuilt with symlink install |
+
 ### Integration Tests
 
 | Test | Status | Issues |
@@ -177,10 +186,11 @@ Packages should be tested in the following order based on dependencies:
    - System tests depend on successful integration tests
    - Will need to be run after fixing integration test issues
 
-4. **AI/Voice Interface**: 📝 Documented but not tested
+4. **AI/Voice Interface**: ✅ Fixed and ready for testing
    - Architecture and components have been documented
-   - Manual testing procedure has been documented
-   - Automated testing is pending resolution of integration test issues
+   - Fixed launch file path issues
+   - Rebuilt with symlink install
+   - Ready for manual testing
 
 ## Next Steps for Testing
 
@@ -246,3 +256,56 @@ The AI/Voice interface consists of several components that work together:
    - Subscribes to VoiceResponse messages
 
 These components communicate through ROS2 topics, services, and actions, allowing for a flexible and modular voice interface system.
+
+## Node Execution Issues
+
+When attempting to run the AI/voice interface nodes using:
+```
+./nevil launch nevil_interfaces_ai speech_interface.launch.py
+```
+
+The following errors were encountered:
+
+```
+[speech_recognition_node-1] python3: can't open file '/home/dan/nevil/install/nevil_interfaces_ai/share/nevil_interfaces_ai/nevil_interfaces_ai/speech_recognition_node.py': [Errno 2] No such file or directory
+[dialog_manager_node-3] python3: can't open file '/home/dan/nevil/install/nevil_interfaces_ai/share/nevil_interfaces_ai/nevil_interfaces_ai/dialog_manager_node.py': [Errno 2] No such file or directory
+[speech_synthesis_node-2] python3: can't open file '/home/dan/nevil/install/nevil_interfaces_ai/share/nevil_interfaces_ai/nevil_interfaces_ai/speech_synthesis_node.py': [Errno 2] No such file or directory
+```
+
+### Root Cause Analysis
+
+According to the Nevil directory structure documentation, this is a known issue with path resolution. The launch file was looking for the Python files in the wrong location:
+
+- **Looking in**: `/home/dan/nevil/install/nevil_interfaces_ai/share/nevil_interfaces_ai/nevil_interfaces_ai/`
+- **Should be in**: `/home/dan/nevil/install/nevil_interfaces_ai/lib/nevil_interfaces_ai/` or `/home/dan/nevil/install/nevil_interfaces_ai/lib/python3/site-packages/`
+
+### Solution Implemented
+
+We fixed this issue by:
+
+1. **Correcting the launch file paths**:
+   
+   In `src/nevil_interfaces_ai/launch/speech_interface.launch.py`, changed:
+   ```python
+   # Incorrect
+   cmd=['python3', os.path.join(src_dir, 'nevil_interfaces_ai', 'speech_recognition_node.py')]
+   ```
+   
+   To:
+   ```python
+   # Correct
+   cmd=['python3', os.path.join(src_dir, 'scripts', 'speech_recognition_node.py')]
+   ```
+
+2. **Rebuilding with symlink install**:
+   ```bash
+   cd ~/nevil
+   rm -rf build/nevil_interfaces_ai  # Clean build directory first
+   colcon build --packages-select nevil_interfaces_ai --symlink-install
+   ```
+
+3. **Documenting the solution**:
+   
+   Created a comprehensive document at `docs/PYTHON_PATH_SOLUTIONS.md` that records this solution and other Python path solutions for future reference.
+
+This solution follows the established pattern documented in the Nevil directory structure guide and resolves the path issues we encountered.

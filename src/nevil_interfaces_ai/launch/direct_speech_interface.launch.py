@@ -12,8 +12,9 @@ def generate_launch_description():
     
     # Get the absolute path to the source directory
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    src_dir = os.path.dirname(os.path.dirname(current_dir))
-    nevil_interfaces_ai_dir = os.path.join(src_dir, 'nevil_interfaces_ai', 'nevil_interfaces_ai')
+    # Use the source directory path directly
+    src_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    nevil_interfaces_ai_dir = os.path.join(src_dir, 'nevil_interfaces_ai')
     
     # Print paths for debugging
     print(f"Current directory: {current_dir}")

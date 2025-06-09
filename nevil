@@ -7,11 +7,12 @@ echo "Current directory: $(pwd)"
 echo "Script location: $0"
 
 # Source the setup file
-echo "Sourcing setup file: ~/nevil/src/install/setup.bash"
-source ~/nevil/src/install/setup.bash
+echo "Sourcing setup file: ~/nevil/install/setup.bash"
+source ~/nevil/install/setup.bash
 
-echo "AMENT_PREFIX_PATH after sourcing: $AMENT_PREFIX_PATH"
+#echo "AMENT_PREFIX_PATH after sourcing: $AMENT_PREFIX_PATH"
 echo "ROS_PACKAGE_PATH after sourcing: $ROS_PACKAGE_PATH"
+echo "Project path: $PROJECT_PATH"
 echo "Command to execute: ros2 $@"
 
 # Execute the ROS2 command

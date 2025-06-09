@@ -194,6 +194,39 @@ cd ~/nevil && source src/install/setup.bash
 nevil launch nevil_bringup full_system.launch.py
 ```
 
+### Path Issues and Solutions
+
+The Nevil-picar-v2 project has several path-related issues that can affect building, testing, and running the system. These issues stem from the complex interaction between ROS2 package structure, Python module resolution, and the dual directory structure of the project.
+
+#### Common Path Issues
+
+1. **Module Not Found Errors**: Python modules not being found due to PYTHONPATH issues
+2. **Launch File Errors**: Executables not found in the expected directories
+3. **Configuration File Not Found**: Configuration files not being found in the expected locations
+4. **Dual Directory Structure Confusion**: Confusion between `/home/dan/Documents/Cursor Projects/Nevil-picar-v2` and `/home/dan/nevil`
+
+#### Solutions
+
+We've created several tools and documents to help resolve these issues:
+
+1. **Wrapper Scripts**:
+   - `nevil_direct.sh`: Runs nodes directly from source without requiring installation
+   - `nevil_installed.sh`: Runs nodes from installed packages
+   - `rebuild_nevil_interfaces_ai.sh`: Rebuilds specific packages with updated setup files
+
+2. **Documentation**:
+   - [Python Path Solutions](docs/PYTHON_PATH_SOLUTIONS.md): Solutions for common Python path issues
+   - [Path Resolution Guide](docs/PATH_RESOLUTION_GUIDE.md): Comprehensive guide to resolving path issues
+   - [Build Status](docs/BUILD_STATUS.md): Status of package builds and known issues
+
+3. **Best Practices**:
+   - Use `colcon build --symlink-install` to build packages
+   - Include all necessary files in setup.py data_files
+   - Use entry points in setup.py for executable scripts
+   - Use consistent paths in all scripts and configuration files
+
+For more detailed information, refer to the [Path Resolution Guide](docs/PATH_RESOLUTION_GUIDE.md).
+
 #### 2. Run the System
 
 Run the system in simulation mode:
@@ -291,6 +324,10 @@ For more detailed information, refer to the documentation:
 - [Build System](build/README.md)
 - [Build Summary](build/NEVIL_BUILD_SUMMARY.md)
 - [Environment Variables](docs/BUILD_ENVIRONMENT_VARIABLES.md)
+- [Build Status](docs/BUILD_STATUS.md)
+- [Python Path Solutions](docs/PYTHON_PATH_SOLUTIONS.md)
+- [Path Resolution Guide](docs/PATH_RESOLUTION_GUIDE.md)
+- [Testing Status](docs/tests/TESTING_STATUS.md)
 
 ## License
 

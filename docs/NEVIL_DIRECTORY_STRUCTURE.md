@@ -109,7 +109,7 @@ Each package follows a similar structure with package-specific files and directo
 After building with `colcon build`, the install directory contains the built packages with the following structure:
 
 ```
-src/install/
+ iinstall/
 ├── setup.bash                        # Main setup script
 ├── setup.sh                          # Shell-specific setup scripts
 ├── setup.zsh

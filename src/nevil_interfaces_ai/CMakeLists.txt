@@ -7,6 +7,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -29,7 +30,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES std_msgs geometry_msgs nevil_interfaces
 )
 
+ament_python_install_package(nevil_ai_pkg)
+
 ament_export_dependencies(rosidl_default_runtime)
+
 # Install launch files
 install(DIRECTORY
   launch
@@ -50,13 +54,6 @@ install(PROGRAMS
   scripts/speech_synthesis_node.py
   scripts/text_command_processor.py
   DESTINATION lib/${PROJECT_NAME}
-)
-
-# Install Python modules
-install(DIRECTORY
-  ${PROJECT_NAME}/
-  DESTINATION lib/python3/site-packages/${PROJECT_NAME}
-  PATTERN "__pycache__" EXCLUDE
 )
 
 ament_package()

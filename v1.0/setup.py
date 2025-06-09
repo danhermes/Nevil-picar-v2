@@ -9,9 +9,12 @@ import os
 # Add the current directory to the path
 sys.path.append('./picarlibs')
 
-# Read the contents of the README file
-with open('README.md', encoding='utf-8') as f:
-    long_description = f.read()
+# Read the contents of the README file if it exists, otherwise use a default description
+try:
+    with open('README.md', encoding='utf-8') as f:
+        long_description = f.read()
+except FileNotFoundError:
+    long_description = 'Picarx gait Library for Raspberry Pi'
 
 setup(
     name='picarx',

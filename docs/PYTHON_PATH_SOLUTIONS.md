@@ -259,3 +259,153 @@ When using `ExecuteProcess` in a launch file with shell commands like `cd`, the 
       output='screen'
   )
   ```
+  
+  ## Comprehensive Path Resolution Strategy
+  
+  After extensive testing and analysis, we've identified several patterns of path issues in the Nevil-picar-v2 project. Here's a comprehensive strategy to address these issues:
+  
+  ### 1. ROS2 Package Structure Understanding
+  
+  The ROS2 package structure is fundamentally different from standard Python projects:
+  
+  ```
+  workspace/
+  ├── src/                  # Source packages
+  │   ├── package1/
+  │   │   ├── package1/     # Python module
+  │   │   ├── setup.py      # Package setup
+  │   │   └── CMakeLists.txt
+  │   └── package2/
+  ├── build/                # Build artifacts
+  │   ├── package1/
+  │   └── package2/
+  └── install/              # Installed packages
+      ├── package1/
+      │   ├── lib/
+      │   │   └── package1/ # Executables
+      │   └── share/
+      │       └── package1/ # Launch files, etc.
+      └── package2/
+  ```
+  
+  Understanding this structure is crucial for resolving path issues.
+  
+  ### 2. Standardized Approach for Different Scenarios
+  
+  #### Development Mode (Running from Source)
+  
+  When running nodes directly from source:
+  
+  1. **Use the direct_speech_interface.launch.py approach**:
+     ```python
+     # Get paths to Python files
+     speech_recognition_path = os.path.join(src_dir, 'nevil_interfaces_ai', 'speech_recognition_node.py')
+     
+     # Execute directly
+     ExecuteProcess(
+         cmd=['python3', speech_recognition_path],
+         name='speech_recognition_node',
+         output='screen'
+     )
+     ```
+  
+  2. **Set PYTHONPATH environment variable**:
+     ```python
+     env = os.environ.copy()
+     env['PYTHONPATH'] = f"{src_dir}:{env.get('PYTHONPATH', '')}"
+     ```
+  
+  3. **Use relative imports in Python files**:
+     ```python
+     try:
+         from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
+     except ImportError:
+         # Try relative import if package import fails
+         from .audio_hardware_interface import AudioHardwareInterface
+     ```
+  
+  #### Deployment Mode (Running from Installed Packages)
+  
+  When running nodes from installed packages:
+  
+  1. **Use the speech_interface.launch.py approach**:
+     ```python
+     # Use Node action with entry points
+     Node(
+         package='nevil_interfaces_ai',
+         executable='speech_recognition_node',
+         name='speech_recognition_node',
+         output='screen'
+     )
+     ```
+  
+  2. **Define entry points in setup.py**:
+     ```python
+     entry_points={
+         'console_scripts': [
+             'speech_recognition_node = nevil_interfaces_ai.speech_recognition_node:main',
+             'speech_synthesis_node = nevil_interfaces_ai.speech_synthesis_node:main',
+             'dialog_manager_node = nevil_interfaces_ai.dialog_manager_node:main',
+         ],
+     }
+     ```
+  
+  3. **Include all necessary files in setup.py**:
+     ```python
+     data_files=[
+         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
+         ('share/' + package_name, ['package.xml']),
+         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*.launch.py'))),
+         (os.path.join('share', package_name, 'scripts'), glob(os.path.join('scripts', '*.py'))),
+     ]
+     ```
+  
+  ### 3. Wrapper Scripts for Different Scenarios
+  
+  We've created several wrapper scripts to handle different scenarios:
+  
+  1. **nevil_direct.sh**: Runs nodes directly from source without requiring installation
+  2. **nevil_installed.sh**: Runs nodes from installed packages
+  3. **rebuild_nevil_interfaces_ai.sh**: Rebuilds the package with the updated setup.py file
+  
+  These scripts provide flexibility for different development and deployment scenarios.
+  
+  ### 4. Troubleshooting Path Issues
+  
+  When encountering path issues:
+  
+  1. **Check import statements**:
+     - Use try/except blocks to handle both package and relative imports
+     - Print debug information about import paths
+  
+  2. **Verify PYTHONPATH**:
+     - Print the PYTHONPATH environment variable
+     - Ensure it includes both source and install directories
+  
+  3. **Check file existence**:
+     - Verify that files exist at the expected paths
+     - Print debug information about file paths
+  
+  4. **Inspect launch file approach**:
+     - Ensure the launch file is using the appropriate approach for the scenario
+     - Check that environment variables are properly set
+  
+  5. **Rebuild packages**:
+     - Use `colcon build --symlink-install` to rebuild packages
+     - Clean build directories if necessary
+  
+  By following these guidelines, you can effectively resolve path issues in the Nevil-picar-v2 project.
+  
+  ## Comprehensive Path Resolution Guide
+  
+  For a more detailed and comprehensive guide to resolving path issues in the Nevil-picar-v2 project, please refer to the [Path Resolution Guide](PATH_RESOLUTION_GUIDE.md). This guide provides:
+  
+  1. **In-depth analysis of all path issues**
+  2. **Detailed solution strategies for each issue**
+  3. **Code examples for different scenarios**
+  4. **Best practices for path resolution**
+  5. **Troubleshooting common issues**
+  6. **Development vs. deployment considerations**
+  7. **Package configuration guidelines**
+  
+  The Path Resolution Guide builds upon the solutions presented in this document and provides a more structured and comprehensive approach to resolving path issues in the Nevil-picar-v2 project.

@@ -1,19 +1,55 @@
 #!/bin/bash
 
-# Wrapper script for ROS2 commands that handles spaces in the path correctly
+# Activate virtual environment
+#source ~/Nevil-picar-v2/nevil2env/bin/activate
+#deactivate
+# Source ROS 2 and workspace setup
+source ~/ros2_humble/install/setup.bash
+source ~/Nevil-picar-v2/install/setup.bash
 
-echo "***** NEVIL SCRIPT DEBUG *****"
-echo "Current directory: $(pwd)"
-echo "Script location: $0"
+# Project root
+PROJECT_DIR=~/Nevil-picar-v2
 
-# Source the setup file
-echo "Sourcing setup file: ~/nevil/install/setup.bash"
-source ~/nevil/install/setup.bash
+# Get absolute path to ros2 executable once at top
+ros2_cli=$(which ros2)
 
-#echo "AMENT_PREFIX_PATH after sourcing: $AMENT_PREFIX_PATH"
-echo "ROS_PACKAGE_PATH after sourcing: $ROS_PACKAGE_PATH"
-echo "Project path: $PROJECT_PATH"
-echo "Command to execute: ros2 $@"
+# Handle custom launch logic
+if [[ "$1" == "launch" ]]; then
+    shift
 
-# Execute the ROS2 command
-ros2 "$@"
+    if [[ -z "$1" ]]; then
+        echo "❌ Error: No launch file specified."
+        exit 1
+    fi
+
+    echo "🔧 Launching with: sudo env ... $ros2_cli launch $@"
+
+    sudo env \
+        "PATH=$PATH" \
+        "PYTHONPATH=$PYTHONPATH" \
+        "AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH" \
+        "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" \
+        "COLCON_PREFIX_PATH=$COLCON_PREFIX_PATH" \
+        "ROS_DOMAIN_ID=$ROS_DOMAIN_ID" \
+        "$ros2_cli" launch "$@"
+
+else
+    # Fallback passthrough to normal ros2 CLI
+    "$ros2_cli" "$@"
+fi
+
+
+
+
+# If you don’t want to run everything with sudo, but only the real-time nodes (e.g. chrt -f calls), you could patch just those lines in the launch.py file like so:
+
+# python
+# Copy
+# Edit
+# cmd = [
+#     'sudo', 'env', f'PATH={os.environ["PATH"]}',
+#     'chrt', '-f', '85',
+#     '/home/dan/ros2_humble/install/ros2cli/bin/ros2', 'run',
+#     'nevil_realtime', 'rt_sensor_node',
+#     # ...args
+# ]

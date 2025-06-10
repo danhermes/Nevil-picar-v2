@@ -17,7 +17,9 @@ The following launch configurations are available:
 
 0. **Physical Robot Launch**: Starts the system on the physical robot
 
-   sudo chrt -f 85 bash -c "source /home/dan/Nevil-picar-v2/install/setup.bash && ros2 launch nevil_bringup physical_robot.launch.py"
+   ~/Nevil-picar-v2/nevil launch nevil_bringup physical_robot.launch.py
+
+   source ~/Nevil-picar-v2/install/setup.bash && ~/Nevil-picar-v2/nevil launch nevil_bringup physical_robot.launch.py
 
 
 

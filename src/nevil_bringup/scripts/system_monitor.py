@@ -20,6 +20,13 @@ from ament_index_python.packages import get_package_share_directory
 class SystemMonitor(Node):
     """System monitor node for Nevil-picar v2.0."""
     
+    MODE_MAP = {
+        'standby': 0,
+        'manual': 1,
+        'autonomous': 2,
+        'learning': 3,
+    }
+    
     def __init__(self):
         """Initialize the system monitor node."""
         super().__init__('system_monitor')
@@ -113,7 +120,7 @@ class SystemMonitor(Node):
         """Update and publish system status."""
         # Create status message
         status = SystemStatus()
-        status.mode_code = self.system_mode
+        status.mode_code = self.MODE_MAP[self.system_mode]
         status.ok = True
         status.error_code = 0
         status.error_message = ''

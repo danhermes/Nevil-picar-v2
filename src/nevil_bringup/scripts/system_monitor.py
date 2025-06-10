@@ -113,7 +113,7 @@ class SystemMonitor(Node):
         """Update and publish system status."""
         # Create status message
         status = SystemStatus()
-        status.mode = self.system_mode
+        status.mode_code = self.system_mode
         status.ok = True
         status.error_code = 0
         status.error_message = ''

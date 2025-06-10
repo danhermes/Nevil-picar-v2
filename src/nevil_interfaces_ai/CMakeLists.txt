@@ -40,19 +40,13 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
-# Install scripts
-install(DIRECTORY
-  scripts
-  DESTINATION share/${PROJECT_NAME}
-)
-
 # Install executables
 install(PROGRAMS
-  scripts/ai_interface_node.py
-  scripts/dialog_manager_node.py
-  scripts/speech_recognition_node.py
-  scripts/speech_synthesis_node.py
-  scripts/text_command_processor.py
+  nevil_interfaces_ai/ai_interface_node.py
+  nevil_interfaces_ai/dialog_manager_node.py
+  nevil_interfaces_ai/speech_recognition_node.py
+  nevil_interfaces_ai/speech_synthesis_node.py
+  nevil_interfaces_ai/text_command_processor.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

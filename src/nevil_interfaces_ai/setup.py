@@ -15,9 +15,6 @@ setup(
         # Include launch files
         (os.path.join('share', package_name, 'launch'),
          glob(os.path.join('launch', '*.launch.py'))),
-        # Include scripts directory
-        (os.path.join('share', package_name, 'scripts'),
-         glob(os.path.join('scripts', '*.py'))),
     ],
     install_requires=[
         'setuptools',
@@ -38,7 +35,7 @@ setup(
             'audio_hardware_interface_test = nevil_interfaces_ai.audio_hardware_interface:main',
             'test_audio_hardware = nevil_interfaces_ai.test_audio_hardware:main',
             'test_env_loading = nevil_interfaces_ai.test_env_loading:main',
-            'ai_interface_node = scripts.ai_interface_node:main',
+            'ai_interface_node = nevil_interfaces_ai.ai_interface_node:main',
         ],
     },
 )

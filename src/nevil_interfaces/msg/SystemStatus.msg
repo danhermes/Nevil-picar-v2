@@ -24,3 +24,9 @@ string[] error_messages      # List of error messages
 float32 cpu_usage            # 0.0 to 1.0 (percentage/100)
 float32 memory_usage         # 0.0 to 1.0 (percentage/100)
 float32 disk_usage           # 0.0 to 1.0 (percentage/100)
+
+# System status
+bool ok
+uint8 mode_code
+int32 error_code
+string error_message

@@ -1,55 +1,40 @@
 #!/bin/bash
 
-# Activate virtual environment
-#source ~/Nevil-picar-v2/nevil2env/bin/activate
-#deactivate
-# Source ROS 2 and workspace setup
-source ~/ros2_humble/install/setup.bash
-source ~/Nevil-picar-v2/install/setup.bash
-
-# Project root
-PROJECT_DIR=~/Nevil-picar-v2
-
-# Get absolute path to ros2 executable once at top
-ros2_cli=$(which ros2)
-
-# Handle custom launch logic
-if [[ "$1" == "launch" ]]; then
-    shift
-
-    if [[ -z "$1" ]]; then
-        echo "❌ Error: No launch file specified."
-        exit 1
-    fi
-
-    echo "🔧 Launching with: sudo env ... $ros2_cli launch $@"
-
-    sudo env \
-        "PATH=$PATH" \
-        "PYTHONPATH=$PYTHONPATH" \
-        "AMENT_PREFIX_PATH=$AMENT_PREFIX_PATH" \
-        "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" \
-        "COLCON_PREFIX_PATH=$COLCON_PREFIX_PATH" \
-        "ROS_DOMAIN_ID=$ROS_DOMAIN_ID" \
-        "$ros2_cli" launch "$@"
-
-else
-    # Fallback passthrough to normal ros2 CLI
-    "$ros2_cli" "$@"
+# Ensure PYTHON_EXECUTABLE is set to the virtualenv Python
+if [[ -z "$PYTHON_EXECUTABLE" || "$PYTHON_EXECUTABLE" == "/usr/bin/python3" ]]; then
+    export PYTHON_EXECUTABLE="$HOME/Nevil-picar-v2/nevil2env/bin/python"
 fi
 
+# Source ROS 2 and workspace setup if available
+if [[ -f "$HOME/ros2_humble/install/setup.bash" ]]; then
+    source "$HOME/ros2_humble/install/setup.bash"
+fi
 
+if [[ -f "$HOME/Nevil-picar-v2/install/setup.bash" ]]; then
+    source "$HOME/Nevil-picar-v2/install/setup.bash"
+fi
 
+# Project root
+PROJECT_DIR="$HOME/Nevil-picar-v2"
 
-# If you don’t want to run everything with sudo, but only the real-time nodes (e.g. chrt -f calls), you could patch just those lines in the launch.py file like so:
+# Get absolute path to ros2 executable
+ros2_cli=$(which ros2)
 
-# python
-# Copy
-# Edit
-# cmd = [
-#     'sudo', 'env', f'PATH={os.environ["PATH"]}',
-#     'chrt', '-f', '85',
-#     '/home/dan/ros2_humble/install/ros2cli/bin/ros2', 'run',
-#     'nevil_realtime', 'rt_sensor_node',
-#     # ...args
-# ]
+# Dispatch logic
+if [[ "$1" == "launch" ]]; then
+    shift
+    if [[ -z "$1" ]]; then
+        echo "? Error: No launch file specified."
+        exit 1
+    fi
+    echo "? Launching with: $ros2_cli launch $@"
+    "$ros2_cli" launch "$@"
+
+elif [[ "$1" == "build" ]]; then
+    shift
+    echo "? Building with: colcon build $@"
+    colcon build "$@"
+
+else
+    "$ros2_cli" "$@"
+fi

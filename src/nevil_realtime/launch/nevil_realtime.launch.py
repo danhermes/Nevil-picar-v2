@@ -73,25 +73,23 @@ def launch_with_priority(context, *args, **kwargs):
     for node in nodes:
         if enable_rt:
             # Launch with real-time priority using chrt
-            cmd = ['sudo', 'chrt', '-f', str(node['priority']), 'ros2', 'run',
-                   node['package'], node['executable'], '--ros-args']
-            
-            # Add name remapping
+            # Use full path to ros2 executable
+            ros2_path = '/home/dan/ros2_humble/install/ros2cli/bin/ros2'
+            cmd = [ros2_path, 'run', node['package'], node['executable'], '--ros-args']
+
+
             cmd.extend(['-r', '__node:=' + node['name']])
-            
-            # Add parameters
+
             for param in node['parameters']:
                 if isinstance(param, dict):
                     for key, value in param.items():
                         cmd.extend(['--param', f'{key}:={value}'])
                 else:
                     cmd.extend(['--params-file', param])
-            
-            # Add CPU affinity if specified
+
             if node['cpu'] is not None:
-                # Use taskset to set CPU affinity
-                cmd = ['sudo', 'taskset', '-c', str(node['cpu'])] + cmd
-            
+                cmd = ['taskset', '-c', str(node['cpu'])] + cmd
+
             # Create and add the process
             process = ExecuteProcess(
                 cmd=cmd,

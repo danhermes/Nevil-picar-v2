@@ -5,6 +5,11 @@ from setuptools import setup
 
 package_name = 'nevil_interfaces_ai'
 
+import numpy
+print(">>> NumPy version seen by setup.py:", numpy.__version__)
+print(">>> NumPy include dir:", numpy.get_include())
+
+
 setup(
     name=package_name,
     version='0.0.0',

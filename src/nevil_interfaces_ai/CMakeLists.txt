@@ -30,7 +30,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES std_msgs geometry_msgs nevil_interfaces
 )
 
-ament_python_install_package(nevil_ai_pkg)
+ament_python_install_package(nevil_interfaces_ai_int)
 
 ament_export_dependencies(rosidl_default_runtime)
 

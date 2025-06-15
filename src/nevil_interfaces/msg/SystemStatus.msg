@@ -30,3 +30,4 @@ bool ok
 uint8 mode_code
 int32 error_code
 string error_message
+float32 cpu_temperature

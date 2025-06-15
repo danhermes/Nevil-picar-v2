@@ -120,7 +120,7 @@ env_vars = load_env_file()
 # Import hardware interfaces
 try:
     # Try absolute import first (for installed package)
-    from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
+    from old_nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
 except ImportError:
     # Fall back to relative import (for running from source)
     try:
@@ -137,10 +137,10 @@ except ImportError:
 try:
     # Try absolute imports first (for installed package)
     try:
-        from nevil_interfaces_ai.speech_recognition_node import main as speech_recognition_main
-        from nevil_interfaces_ai.speech_synthesis_node import main as speech_synthesis_main
-        from nevil_interfaces_ai.dialog_manager_node import main as dialog_manager_main
-        from nevil_interfaces_ai.text_command_processor import main as text_command_processor_main
+        from old_nevil_interfaces_ai.speech_recognition_node import main as speech_recognition_main
+        from old_nevil_interfaces_ai.speech_synthesis_node import main as speech_synthesis_main
+        from old_nevil_interfaces_ai.dialog_manager_node import main as dialog_manager_main
+        from old_nevil_interfaces_ai.text_command_processor import main as text_command_processor_main
     except ImportError:
         # Fall back to relative imports (for running from source)
         from .speech_recognition_node import main as speech_recognition_main

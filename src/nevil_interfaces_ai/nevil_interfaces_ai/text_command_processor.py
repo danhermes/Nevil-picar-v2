@@ -11,8 +11,8 @@ from rclpy.action import ActionClient
 from std_msgs.msg import String
 from nevil_interfaces.action import NavigateToPoint, PerformBehavior
 from nevil_interfaces.msg import SystemStatus
-from nevil_interfaces_ai.msg import TextCommand, TextResponse, DialogState
-from nevil_interfaces_ai.srv import TranslateCommand, QueryCapabilities
+from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse, DialogState
+from nevil_interfaces_ai_msgs.srv import TranslateCommand, QueryCapabilities
 
 class TextCommandProcessor(Node):
     """

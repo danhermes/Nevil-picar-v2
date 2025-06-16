@@ -1,0 +1,3 @@
+# This directory contains wrapper script templates and should not be built as a ROS2 package
+# The wrapper scripts in this directory are automatically copied to the install directory
+# after colcon build completes to ensure proper hardware library paths are configured.

@@ -8,8 +8,8 @@ import json
 from std_msgs.msg import String, Bool
 from geometry_msgs.msg import PoseStamped
 from nevil_interfaces.action import NavigateToPoint
-from nevil_interfaces_ai.msg import TextCommand, TextResponse
-from nevil_interfaces_ai.srv import TranslateCommand
+from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse
+from nevil_interfaces_ai_msgs.srv import TranslateCommand
 from rclpy.action import ActionClient
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor

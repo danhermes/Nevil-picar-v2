@@ -14,9 +14,9 @@ from rclpy.action.server import ServerGoalHandle
 
 from std_msgs.msg import Bool, String
 from nevil_interfaces.msg import SystemStatus
-from nevil_interfaces_ai.msg import TextCommand, TextResponse, VoiceCommand, VoiceResponse, DialogState
-from nevil_interfaces_ai.action import ProcessDialog
-from nevil_interfaces_ai.srv import TranslateCommand
+from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse, VoiceCommand, VoiceResponse, DialogState
+from nevil_interfaces_ai_msgs.action import ProcessDialog
+from nevil_interfaces_ai_msgs.srv import TranslateCommand
 
 class DialogManager(Node):
     """

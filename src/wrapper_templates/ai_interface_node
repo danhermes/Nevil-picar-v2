@@ -1,0 +1,14 @@
+#!/bin/bash
+# Wrapper script for ai_interface_node
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Set up the Python path
+export PYTHONPATH="$SCRIPT_DIR/../python3.11/site-packages:$SCRIPT_DIR/../../../nevil_interfaces_ai_msgs/lib/python3.11/site-packages:$PYTHONPATH"
+
+# Set up the library path for shared libraries
+export LD_LIBRARY_PATH="$SCRIPT_DIR/../../../nevil_interfaces_ai_msgs/lib:$LD_LIBRARY_PATH"
+
+# Execute the Python module directly
+exec python3 -m nevil_interfaces_ai.ai_interface_node "$@"

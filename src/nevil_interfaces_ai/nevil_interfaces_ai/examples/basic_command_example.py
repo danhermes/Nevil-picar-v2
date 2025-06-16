@@ -5,7 +5,7 @@ from rclpy.node import Node
 import uuid
 import time
 from std_msgs.msg import String, Bool
-from nevil_interfaces_ai.msg import TextCommand, TextResponse, VoiceCommand, VoiceResponse
+from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse, VoiceCommand, VoiceResponse
 
 class BasicCommandExample(Node):
     """

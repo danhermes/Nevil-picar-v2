@@ -321,7 +321,7 @@ When using `ExecuteProcess` in a launch file with shell commands like `cd`, the 
          from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
      except ImportError:
          # Try relative import if package import fails
-         from .audio_hardware_interface import AudioHardwareInterface
+         from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
      ```
   
   #### Deployment Mode (Running from Installed Packages)

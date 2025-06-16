@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+
+# Add the package to the Python path
+package_path = os.path.join(os.path.dirname(__file__), '..', 'python3.11', 'site-packages')
+sys.path.insert(0, package_path)
+
+# Import and run the actual script
+from nevil_bringup.scripts.battery_monitor import main
+
+if __name__ == '__main__':
+    main()

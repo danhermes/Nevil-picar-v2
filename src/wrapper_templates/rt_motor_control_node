@@ -1,0 +1,12 @@
+#!/bin/bash
+# Wrapper script for rt_motor_control_node
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Set up the Python path including picar-x and robot_hat libraries
+export PYTHONPATH="$SCRIPT_DIR/../python3.11/site-packages:/home/dan/picar-x:/home/dan/robot-hat:$PYTHONPATH"
+
+# Run the actual Python file directly
+python_file="$SCRIPT_DIR/rt_motor_control_node.py"
+exec python3 "$python_file" "$@"

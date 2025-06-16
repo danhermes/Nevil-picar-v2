@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Wrapper script for system_monitor.py
+# This script ensures the system_monitor.py is executed correctly
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PYTHON_SCRIPT="${SCRIPT_DIR}/system_monitor.py"
+
+# Execute the Python script
+exec python3 "${PYTHON_SCRIPT}" "$@"

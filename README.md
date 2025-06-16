@@ -327,6 +327,8 @@ For more detailed information, refer to the documentation:
 - [Build Status](docs/BUILD_STATUS.md)
 - [Python Path Solutions](docs/PYTHON_PATH_SOLUTIONS.md)
 - [Path Resolution Guide](docs/PATH_RESOLUTION_GUIDE.md)
+- [Wrapper Script Template System](docs/WRAPPER_SCRIPT_TEMPLATE_SYSTEM.md)
+- [Hardware Library Setup](docs/HARDWARE_LIBRARY_SETUP.md)
 - [Testing Status](docs/tests/TESTING_STATUS.md)
 
 ## License

@@ -1,3 +1,4 @@
-"""
-Nevil-picar v2.0 bringup package.
-"""
+# nevil_bringup package
+from . import package_finder
+
+__all__ = ['package_finder']

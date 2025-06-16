@@ -9,8 +9,8 @@ from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 from std_msgs.msg import Bool
-from nevil_interfaces_ai.msg import TextCommand, TextResponse, DialogState
-from nevil_interfaces_ai.action import ProcessDialog
+from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse, DialogState
+from nevil_interfaces_ai_msgs.action import ProcessDialog
 
 class ConversationExample(Node):
     """

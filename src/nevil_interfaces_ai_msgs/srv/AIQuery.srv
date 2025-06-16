@@ -1,0 +1,5 @@
+# AI Query service
+string query
+---
+string response
+float32 confidence

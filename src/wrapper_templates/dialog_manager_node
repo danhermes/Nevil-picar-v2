@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+
+# Add the package to the Python path
+package_path = os.path.join(os.path.dirname(__file__), '..', 'python3.11', 'site-packages')
+sys.path.insert(0, package_path)
+
+# Run the actual Python file directly
+import subprocess
+python_file = os.path.join(package_path, 'nevil_interfaces_ai', 'dialog_manager_node.py')
+subprocess.run([sys.executable, python_file] + sys.argv[1:])

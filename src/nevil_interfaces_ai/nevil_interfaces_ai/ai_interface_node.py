@@ -5,7 +5,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from std_msgs.msg import String
-from nevil_interfaces_ai.action import ProcessDialog
+from nevil_interfaces_ai_msgs.action import ProcessDialog
 from dotenv import load_dotenv
 
 class AIInterfaceNode(Node):

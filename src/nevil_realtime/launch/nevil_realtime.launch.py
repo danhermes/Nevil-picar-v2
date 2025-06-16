@@ -6,7 +6,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, get_package_prefix
 
 
 def launch_with_priority(context, *args, **kwargs):
@@ -73,11 +73,12 @@ def launch_with_priority(context, *args, **kwargs):
     for node in nodes:
         if enable_rt:
             # Launch with real-time priority using chrt
-            # Use full path to ros2 executable
-            ros2_path = '/home/dan/ros2_humble/install/ros2cli/bin/ros2'
-            cmd = [ros2_path, 'run', node['package'], node['executable'], '--ros-args']
-
-
+            # Use the wrapper scripts directly instead of ros2 run
+            from ament_index_python.packages import get_package_prefix
+            package_prefix = get_package_prefix(node['package'])
+            executable_path = os.path.join(package_prefix, 'lib', node['package'], node['executable'])
+            
+            cmd = [executable_path, '--ros-args']
             cmd.extend(['-r', '__node:=' + node['name']])
 
             for param in node['parameters']:

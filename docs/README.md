@@ -2,32 +2,49 @@
 
 Welcome to the official documentation for Nevil-picar v2.0, a multi-threaded, real-time robotic system built on the PiCar-X platform that integrates ROS2 with PREEMPT-RT for deterministic performance.
 
-**Full System Launch**: Starts all components of the Nevil-picar v2.0 system
-   ```
-   source ~/Nevil-picar-v2/install/setup.bash
-   source ./install/setup.bash
+## Quick Launch
 
-   ros2 launch nevil_bringup full_system.launch.py
+```bash
+# Launch the complete physical robot system
+./nevil launch nevil_bringup physical_robot.launch.py
+
+# Shutdown all nodes
+pkill -f "nevil"
+```
+
+For detailed launch and system management instructions, see the [Launch and System Management Guide](launch_system_guide.md).
 
 ## Documentation Structure
 
 This documentation is organized into several sections to help you understand, use, and develop with Nevil-picar v2.0:
 
-1. [Project Overview](1_overview_project.md) - Introduction to Nevil-picar v2.0, its goals, and capabilities
-2. [Installation and Setup](2_installation_setup.md) - Instructions for installing and configuring the system
-3. [Core Concepts](3_core_concepts.md) - Explanation of the key architectural components and design principles
-4. [User Guide](4_user_guide.md) - Instructions for using Nevil-picar v2.0
-5. [API Reference](5_api_reference.md) - Detailed documentation of the system's APIs
-6. [Developer Guide](6_developer_guide.md) - Information for developers who want to extend or modify the system
-7. [Troubleshooting](7_troubleshooting.md) - Solutions to common problems and issues
+### Core Documentation
+1. [Project Overview](Nevil2.0%20tech/1_overview_project.md) - Introduction to Nevil-picar v2.0, its goals, and capabilities
+2. [Installation and Setup](Nevil2.0%20tech/2_installation_setup.md) - Instructions for installing and configuring the system
+3. [Core Concepts](Nevil2.0%20tech/3_core_concepts.md) - Explanation of the key architectural components and design principles
+4. [User Guide](Nevil2.0%20tech/4_user_guide.md) - Instructions for using Nevil-picar v2.0
+5. [API Reference](Nevil2.0%20tech/5_api_reference.md) - Detailed documentation of the system's APIs
+6. [Developer Guide](Nevil2.0%20tech/6_developer_guide.md) - Information for developers who want to extend or modify the system
+7. [Troubleshooting](Nevil2.0%20tech/7_troubleshooting.md) - Solutions to common problems and issues
+
+### System Operations
+- **[Launch and System Management Guide](launch_system_guide.md)** - Comprehensive guide for starting, monitoring, and shutting down the system
+- [Build Status](build/BUILD_STATUS.md) - Current build status and known issues
+- [AI Interface Architecture](ai_interface_architecture.md) - AI system design and implementation
+
+### Architecture Documentation
+- [Nevil v2.0 Architectural Overview](Nevil%202.0%20architecture/Nevil_v2.0_Architectural_Overview.md)
+- [ROS2 Architecture](Nevil%202.0%20architecture/Nevil_ROS2_Architecture.md)
+- [PREEMPT-RT Integration](init_docs/Nevil_PREEMPT_RT_Integration.md)
 
 ## Quick Start
 
 To get started with Nevil-picar v2.0:
 
-1. Follow the [Installation and Setup](2_installation_setup.md) guide to install the necessary software and configure your system
-2. Read the [Core Concepts](3_core_concepts.md) to understand the system architecture
-3. Follow the [User Guide](4_user_guide.md) to learn how to use Nevil-picar v2.0
+1. **Launch the System**: Use the [Launch Guide](launch_system_guide.md) for step-by-step instructions
+2. **Understand the Architecture**: Read the [Core Concepts](Nevil2.0%20tech/3_core_concepts.md) to understand the system design
+3. **Monitor System Status**: Follow the monitoring procedures in the [Launch Guide](launch_system_guide.md#system-monitoring)
+4. **Troubleshoot Issues**: Refer to the [Troubleshooting](Nevil2.0%20tech/7_troubleshooting.md) guide for common problems
 
 ## System Overview
 

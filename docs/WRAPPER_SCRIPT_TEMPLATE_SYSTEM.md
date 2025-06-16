@@ -111,10 +111,40 @@ elif [[ "$1" == "build" ]]; then
         fi
     }
     
-    # Check if we need to apply wrapper fixes
-    if [[ "$*" != *"--packages-select"* ]] || [[ "$*" == *"nevil_realtime"* ]]; then
-        apply_wrapper_fixes
-    fi
+    # Apply wrapper fixes for all packages
+    apply_wrapper_fixes() {
+        if [[ -d "src/wrapper_templates" ]]; then
+            echo "? Applying wrapper script fixes..."
+            local fixes_applied=0
+            
+            # Apply fixes for each package
+            for package in nevil_bringup nevil_interfaces_ai nevil_core nevil_navigation nevil_realtime nevil_simulation; do
+                if [[ -d "install/$package/lib/$package" ]]; then
+                    # Copy wrapper scripts for this package
+                    for template in src/wrapper_templates/*; do
+                        if [[ -f "$template" && -x "$template" && "$template" != *".md" && "$template" != *"COLCON_IGNORE" ]]; then
+                            template_name=$(basename "$template")
+                            target_dir="install/$package/lib/$package"
+                            
+                            # Check if this wrapper belongs to this package
+                            if [[ -f "$target_dir/$template_name" || -f "$target_dir/${template_name}.py" ]]; then
+                                cp "$template" "$target_dir/" 2>/dev/null
+                                chmod +x "$target_dir/$template_name" 2>/dev/null
+                                fixes_applied=1
+                            fi
+                        fi
+                    done
+                fi
+            done
+            
+            if [[ $fixes_applied -eq 1 ]]; then
+                echo "? Wrapper scripts updated with correct library paths"
+            fi
+        fi
+    }
+    
+    # Apply wrapper fixes for all builds
+    apply_wrapper_fixes
 ```
 
 ## Benefits

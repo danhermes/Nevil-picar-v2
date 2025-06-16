@@ -80,13 +80,15 @@ class DialogManager(Node):
         )
         
         # Create subscribers
-        self.text_command_sub = self.create_subscription(
-            TextCommand,
-            '/nevil/text_command',
-            self.text_command_callback,
-            10,
-            callback_group=self.cb_group_subs
-        )
+        # NOTE: Disabled text_command subscription to prevent duplicate processing
+        # The AI interface handles text commands, dialog manager only manages state
+        # self.text_command_sub = self.create_subscription(
+        #     TextCommand,
+        #     '/nevil/text_command',
+        #     self.text_command_callback,
+        #     10,
+        #     callback_group=self.cb_group_subs
+        # )
         
         self.voice_command_sub = self.create_subscription(
             VoiceCommand,

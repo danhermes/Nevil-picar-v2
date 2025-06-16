@@ -5,7 +5,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from std_msgs.msg import String
-from nevil_interfaces_ai_msgs.msg import TextCommand
+from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse
 from nevil_interfaces_ai_msgs.action import ProcessDialog
 from dotenv import load_dotenv
 
@@ -14,15 +14,31 @@ class AIInterfaceNode(Node):
         super().__init__('ai_interface')
         
         # Load environment variables from .env file with absolute path
-        # Get the project root directory (assuming the script is in src/nevil_interfaces_ai/scripts)
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.abspath(os.path.join(script_dir, '..', '..', '..'))
-        dotenv_path = os.path.join(project_root, '.env')
-        self.get_logger().info(f'Loading .env file from: {dotenv_path}')
-        load_dotenv(dotenv_path=dotenv_path)
+        # Try multiple possible locations for the .env file
+        possible_env_paths = [
+            # Current working directory (when launched from project root)
+            os.path.join(os.getcwd(), '.env'),
+            # Project root relative to script location
+            os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '.env')),
+            # Home directory
+            os.path.join(os.path.expanduser('~'), 'Nevil-picar-v2', '.env'),
+            # Absolute path to known project location
+            '/home/dan/Nevil-picar-v2/.env'
+        ]
+        
+        dotenv_loaded = False
+        for dotenv_path in possible_env_paths:
+            if os.path.exists(dotenv_path):
+                self.get_logger().info(f'Loading .env file from: {dotenv_path}')
+                load_dotenv(dotenv_path=dotenv_path)
+                dotenv_loaded = True
+                break
+        
+        if not dotenv_loaded:
+            self.get_logger().warning(f'Could not find .env file in any of these locations: {possible_env_paths}')
         
         # Publishers
-        self.text_response_pub = self.create_publisher(String, '/nevil/text_response', 10)
+        self.text_response_pub = self.create_publisher(TextResponse, '/nevil/text_response', 10)
         self.status_pub = self.create_publisher(String, 'ai_status', 10)
         
         # Subscribers
@@ -43,9 +59,21 @@ class AIInterfaceNode(Node):
         
         # OpenAI API configuration
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        self.openai_assistant_id = os.getenv('OPENAI_ASSISTANT_ID')
+        self.get_logger().info(f'OpenAI Assistant: {self.openai_assistant_id}')
+        
         if not self.openai_api_key:
             self.get_logger().error('OPENAI_API_KEY environment variable not set in .env file')
             # For testing without OpenAI, we'll still allow the node to run
+        
+        if not self.openai_assistant_id:
+            self.get_logger().warning('OPENAI_ASSISTANT_ID not set, using basic chat completion')
+        else:
+            self.get_logger().info(f'Using OpenAI Assistant: {self.openai_assistant_id}')
+        
+        # Message deduplication
+        self.processed_commands = set()
+        self.max_command_history = 100  # Keep last 100 command IDs
         
         self.get_logger().info('AI Interface Node initialized')
     
@@ -53,12 +81,30 @@ class AIInterfaceNode(Node):
         """Handle incoming text commands from speech recognition"""
         self.get_logger().info(f'Received text command: {msg.command_text}')
         
+        # Check for duplicate messages using command_id
+        if hasattr(msg, 'command_id') and msg.command_id:
+            if msg.command_id in self.processed_commands:
+                self.get_logger().debug(f'Ignoring duplicate command: {msg.command_id}')
+                return
+            
+            # Add to processed commands and limit history size
+            self.processed_commands.add(msg.command_id)
+            if len(self.processed_commands) > self.max_command_history:
+                # Remove oldest entries (convert to list, remove first half, convert back)
+                commands_list = list(self.processed_commands)
+                self.processed_commands = set(commands_list[self.max_command_history//2:])
+        
         # Process the command with OpenAI or use a fallback
         response = self.process_with_openai(msg.command_text)
         
         # Publish the response
-        response_msg = String()
-        response_msg.data = response
+        response_msg = TextResponse()
+        response_msg.header.stamp = self.get_clock().now().to_msg()
+        response_msg.response_text = response
+        response_msg.response_type = 'answer'
+        response_msg.status = 0
+        response_msg.command_id = msg.command_id
+        response_msg.context_id = msg.context_id
         self.text_response_pub.publish(response_msg)
         
         # Also publish status update
@@ -102,8 +148,13 @@ class AIInterfaceNode(Node):
         result.actions_taken = ["processed_text"]
         
         # Publish the response for TTS
-        response_msg = String()
-        response_msg.data = response
+        response_msg = TextResponse()
+        response_msg.header.stamp = self.get_clock().now().to_msg()
+        response_msg.response_text = response
+        response_msg.response_type = 'answer'
+        response_msg.status = 0
+        response_msg.command_id = ''
+        response_msg.context_id = ''
         self.text_response_pub.publish(response_msg)
         
         goal_handle.succeed(result)
@@ -122,26 +173,80 @@ class AIInterfaceNode(Node):
             # Initialize the client
             client = OpenAI(api_key=self.openai_api_key)
             
-            # Call OpenAI API with the latest client format
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant for a robot named Nevil. Keep responses concise and clear."},
-                    {"role": "user", "content": text}
-                ],
-                max_tokens=150  # Limit response length for faster processing
-            )
-            
-            # Extract and return the response text
-            response_text = response.choices[0].message.content
-            self.get_logger().info(f'OpenAI response: {response_text}')
-            return response_text
+            # Use Assistant API if assistant ID is available
+            if self.openai_assistant_id:
+                return self.process_with_assistant(client, text)
+            else:
+                # Fallback to basic chat completion
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant for a robot named Nevil. Keep responses concise and clear."},
+                        {"role": "user", "content": text}
+                    ],
+                    max_tokens=150  # Limit response length for faster processing
+                )
+                
+                # Extract and return the response text
+                response_text = response.choices[0].message.content
+                self.get_logger().info(f'OpenAI response: {response_text}')
+                return response_text
         
         except ImportError:
             self.get_logger().error('OpenAI package not installed')
             return self.generate_fallback_response(text)
         except Exception as e:
             self.get_logger().error(f'Error calling OpenAI API: {str(e)}')
+            return self.generate_fallback_response(text)
+    
+    def process_with_assistant(self, client, text):
+        """Process text using OpenAI Assistant API"""
+        try:
+            # Create a thread for the conversation
+            thread = client.beta.threads.create()
+            
+            # Add the user message to the thread
+            client.beta.threads.messages.create(
+                thread_id=thread.id,
+                role="user",
+                content=text
+            )
+            
+            # Run the assistant
+            run = client.beta.threads.runs.create(
+                thread_id=thread.id,
+                assistant_id=self.openai_assistant_id
+            )
+            
+            # Wait for the run to complete
+            import time
+            while run.status in ['queued', 'in_progress']:
+                time.sleep(0.5)
+                run = client.beta.threads.runs.retrieve(
+                    thread_id=thread.id,
+                    run_id=run.id
+                )
+            
+            if run.status == 'completed':
+                # Get the assistant's response
+                messages = client.beta.threads.messages.list(
+                    thread_id=thread.id
+                )
+                
+                # Get the latest assistant message
+                for message in messages.data:
+                    if message.role == 'assistant':
+                        response_text = message.content[0].text.value
+                        self.get_logger().info(f'OpenAI Assistant response: {response_text}')
+                        return response_text
+                
+                return "I'm sorry, I couldn't generate a response."
+            else:
+                self.get_logger().error(f'Assistant run failed with status: {run.status}')
+                return self.generate_fallback_response(text)
+                
+        except Exception as e:
+            self.get_logger().error(f'Error with OpenAI Assistant: {str(e)}')
             return self.generate_fallback_response(text)
     
     def generate_fallback_response(self, text):

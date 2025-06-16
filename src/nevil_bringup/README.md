@@ -28,6 +28,9 @@ Ctrl+C
 sudo pkill -f "nevil"
 ```
 
+ros2 node list | grep ai_interface
+
+
 ## Launch Configurations
 
 ### **Physical Robot Launch** (Recommended)

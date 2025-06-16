@@ -281,28 +281,48 @@ class AudioHardwareInterface:
                     try:
                         self.logger.debug(f'Using OpenAI TTS with voice: {tts_voice}')
                         
-                        # Create OpenAI client
-                        client = OpenAI(api_key=self.openai_api_key)
+                        # Create OpenAI client with timeout
+                        client = OpenAI(api_key=self.openai_api_key, timeout=30.0)
                         
                         # Create temp directory if it doesn't exist
                         import os
                         temp_dir = os.path.join(os.getcwd(), "tts_temp")
                         os.makedirs(temp_dir, exist_ok=True)
                         
+                        # Clean up old temp files (older than 5 minutes)
+                        import glob
+                        import time as time_module
+                        for old_file in glob.glob(os.path.join(temp_dir, "tts_*.mp3")):
+                            try:
+                                if time_module.time() - os.path.getmtime(old_file) > 300:  # 5 minutes
+                                    os.remove(old_file)
+                            except:
+                                pass
+                        
                         # Create unique filename
                         import uuid
                         unique_id = str(uuid.uuid4())
                         output_file = os.path.join(temp_dir, f"tts_{unique_id}.mp3")
                         
-                        # Generate speech using OpenAI TTS API with streaming response
-                        with client.audio.speech.with_streaming_response.create(
-                            model="tts-1",
-                            voice="onyx",  # Hardcode to onyx as in v1.0
-                            input=text,
-                            response_format="mp3",
-                            speed=0.9
-                        ) as response:
-                            response.stream_to_file(output_file)
+                        # Generate speech using OpenAI TTS API with streaming response and error handling
+                        try:
+                            with client.audio.speech.with_streaming_response.create(
+                                model="tts-1",
+                                voice="onyx",  # Hardcode to onyx as in v1.0
+                                input=text[:4000],  # Limit text length to avoid API errors
+                                response_format="mp3",
+                                speed=0.9
+                            ) as response:
+                                response.stream_to_file(output_file)
+                        except Exception as api_error:
+                            self.logger.error(f'OpenAI TTS API error: {api_error}')
+                            # Clean up partial file
+                            if os.path.exists(output_file):
+                                try:
+                                    os.remove(output_file)
+                                except:
+                                    pass
+                            raise api_error
                         
                         self.logger.debug(f'TTS audio saved to {output_file}')
                         
@@ -311,34 +331,65 @@ class AudioHardwareInterface:
                             try:
                                 self.logger.debug('Playing audio with Robot HAT Music')
                                 self.music_player.music_play(output_file)
+                                
+                                # Wait for playback with timeout to prevent hanging
+                                max_wait_time = 30  # Maximum 30 seconds
+                                wait_start = time.time()
                                 while self.music_player.pygame.mixer.music.get_busy():
+                                    if time.time() - wait_start > max_wait_time:
+                                        self.logger.warning('Audio playback timeout, stopping')
+                                        break
                                     time.sleep(0.1)
+                                
                                 self.music_player.music_stop()
+                                self.logger.debug('Audio playback completed')
                             except Exception as e:
                                 self.logger.error(f'Failed to play with Robot HAT Music: {e}')
                                 # Fallback to pygame
                                 try:
                                     import pygame
-                                    pygame.mixer.init()
+                                    pygame.mixer.quit()  # Clean up any existing mixer
+                                    pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
                                     pygame.mixer.music.load(output_file)
                                     pygame.mixer.music.play()
+                                    
+                                    # Wait with timeout
+                                    max_wait_time = 30
+                                    wait_start = time.time()
                                     while pygame.mixer.music.get_busy():
+                                        if time.time() - wait_start > max_wait_time:
+                                            self.logger.warning('Pygame playback timeout, stopping')
+                                            pygame.mixer.music.stop()
+                                            break
                                         time.sleep(0.1)
+                                    
                                     pygame.mixer.quit()
-                                except ImportError:
-                                    self.logger.error('Neither Robot HAT Music nor pygame available for mp3 playback')
+                                    self.logger.debug('Pygame fallback playback completed')
+                                except Exception as pygame_error:
+                                    self.logger.error(f'Pygame fallback also failed: {pygame_error}')
                         else:
                             # Use pygame as fallback
                             try:
                                 import pygame
-                                pygame.mixer.init()
+                                pygame.mixer.quit()  # Clean up any existing mixer
+                                pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
                                 pygame.mixer.music.load(output_file)
                                 pygame.mixer.music.play()
+                                
+                                # Wait with timeout
+                                max_wait_time = 30
+                                wait_start = time.time()
                                 while pygame.mixer.music.get_busy():
+                                    if time.time() - wait_start > max_wait_time:
+                                        self.logger.warning('Pygame playback timeout, stopping')
+                                        pygame.mixer.music.stop()
+                                        break
                                     time.sleep(0.1)
+                                
                                 pygame.mixer.quit()
-                            except ImportError:
-                                self.logger.error('Pygame not available for mp3 playback')
+                                self.logger.debug('Pygame playback completed')
+                            except Exception as pygame_error:
+                                self.logger.error(f'Pygame not available or failed: {pygame_error}')
                         
                         # Clean up temporary file
                         try:
@@ -566,6 +617,46 @@ class AudioHardwareInterface:
                     self.logger.debug(f'Set dynamic energy to {dynamic_energy}')
         except Exception as e:
             self.logger.error(f'Failed to set speech recognition parameters: {e}')
+
+    def set_speaker_voice(self, voice_id):
+        """
+        Set the speaker voice for TTS.
+        
+        Args:
+            voice_id: Voice ID to use for TTS
+        """
+        if voice_id:
+            self.tts_voice = voice_id
+            self.logger.debug(f'Set TTS voice to: {voice_id}')
+
+    def set_speech_rate(self, rate):
+        """
+        Set the speech rate for TTS.
+        
+        Args:
+            rate: Speech rate in words per minute
+        """
+        if self.tts and hasattr(self.tts, 'setProperty'):
+            try:
+                self.tts.setProperty('rate', rate)
+                self.logger.debug(f'Set speech rate to: {rate}')
+            except Exception as e:
+                self.logger.error(f'Failed to set speech rate: {e}')
+
+    def set_speech_volume(self, volume):
+        """
+        Set the speech volume for TTS.
+        
+        Args:
+            volume: Volume level (0.0 to 1.0)
+        """
+        self.volume_db = volume
+        if self.tts and hasattr(self.tts, 'setProperty'):
+            try:
+                self.tts.setProperty('volume', volume)
+                self.logger.debug(f'Set speech volume to: {volume}')
+            except Exception as e:
+                self.logger.error(f'Failed to set speech volume: {e}')
 
     def cleanup(self):
         """

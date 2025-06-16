@@ -8,14 +8,15 @@
         "PERPLEXITYAI_INITIATE_CONNECTION",
         "PERPLEXITYAI_GET_REQUIRED_PARAMETERS"
       ],
-      "disabled": false
+      "disabled": true
     },
     "context7": {
       "url": "https://mcp.composio.dev/perplexityai/abandoned-creamy-horse-Y39-hm?agent=cursor",
       "alwaysAllow": [
-        "PERPLEXITYAI_PERPLEXITY_AI_SEARCH"
+        "PERPLEXITYAI_PERPLEXITY_AI_SEARCH",
+        "resolve-library-id"
       ],
-      "disabled": false
+      "disabled": true
     }
   }
 }

@@ -6,7 +6,7 @@ import json
 import threading
 import queue
 import numpy as np
-import speech_recognition as sr
+#import speech_recognition as sr
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup

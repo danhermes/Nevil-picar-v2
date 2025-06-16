@@ -25,7 +25,7 @@ The `nevil_bringup` package serves as the main integration point for the Nevil-p
 Ctrl+C
 
 # Force shutdown all Nevil processes
-pkill -f "nevil"
+sudo pkill -f "nevil"
 ```
 
 ## Launch Configurations

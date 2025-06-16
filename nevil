@@ -45,6 +45,11 @@ elif [[ "$1" == "build" ]]; then
             
             # Apply fixes for each package
             for package in nevil_bringup nevil_interfaces_ai nevil_core nevil_navigation nevil_realtime nevil_simulation; do
+                # Create the lib/package directory if it doesn't exist but the package is installed
+                if [[ -d "install/$package" ]]; then
+                    mkdir -p "install/$package/lib/$package"
+                fi
+                
                 if [[ -d "install/$package/lib/$package" ]]; then
                     # Copy wrapper scripts for this package
                     for template in src/wrapper_templates/*; do
@@ -52,11 +57,35 @@ elif [[ "$1" == "build" ]]; then
                             template_name=$(basename "$template")
                             target_dir="install/$package/lib/$package"
                             
-                            # Check if this wrapper belongs to this package (exists in install)
+                            # Check if this wrapper belongs to this package by checking if the corresponding Python file exists
+                            # or if the wrapper name matches package-specific patterns
+                            should_copy=0
+                            
+                            # Always copy if the exact file already exists (original logic)
                             if [[ -f "$target_dir/$template_name" || -f "$target_dir/${template_name}.py" ]]; then
+                                should_copy=1
+                            # Copy package-specific wrappers based on package name
+                            elif [[ "$package" == "nevil_bringup" && ("$template_name" == "battery_monitor" || "$template_name" == "hardware_init" || "$template_name" == "system_monitor" || "$template_name" == "system_monitor_wrapper" || "$template_name" == "nevil_cli") ]]; then
+                                should_copy=1
+                            elif [[ "$package" == "nevil_interfaces_ai" && ("$template_name" == "ai_interface_node" || "$template_name" == "dialog_manager_node" || "$template_name" == "speech_recognition_node" || "$template_name" == "speech_synthesis_node") ]]; then
+                                should_copy=1
+                                # Create the lib/nevil_interfaces_ai directory if it doesn't exist
+                                mkdir -p "$target_dir"
+                            elif [[ "$package" == "nevil_core" && "$template_name" == "system_manager_node" ]]; then
+                                should_copy=1
+                            elif [[ "$package" == "nevil_navigation" && "$template_name" == "motion_control_node" ]]; then
+                                should_copy=1
+                            elif [[ "$package" == "nevil_realtime" && ("$template_name" == "rt_config_manager" || "$template_name" == "rt_motor_control_node" || "$template_name" == "rt_sensor_node") ]]; then
+                                should_copy=1
+                            elif [[ "$package" == "nevil_simulation" && ("$template_name" == "simulation_node" || "$template_name" == "visualization_node") ]]; then
+                                should_copy=1
+                            fi
+                            
+                            if [[ $should_copy -eq 1 ]]; then
                                 cp "$template" "$target_dir/" 2>/dev/null
                                 chmod +x "$target_dir/$template_name" 2>/dev/null
                                 fixes_applied=1
+                                echo "  Copied $template_name to $package"
                             fi
                         fi
                     done

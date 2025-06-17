@@ -5,6 +5,7 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
 from dotenv import load_dotenv
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 class SimpleAIInterface(Node):
     def __init__(self):
@@ -16,15 +17,23 @@ class SimpleAIInterface(Node):
         dotenv_path = os.path.join(project_root, '.env')
         load_dotenv(dotenv_path=dotenv_path)
         
+        # QoS profile for ai messages
+        self.ai_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            durability=DurabilityPolicy.VOLATILE,
+            depth=1
+        ) 
+
         # Publishers
-        self.text_response_pub = self.create_publisher(String, '/nevil/text_response', 10)
+        self.text_response_pub = self.create_publisher(String, '/nevil/text_response', qos_profile=self.ai_qos)
         
         # Subscribers
         self.text_command_sub = self.create_subscription(
             String,
             '/nevil/text_command',
             self.handle_text_command,
-            10
+            qos_profile=self.ai_qos
         )
         
         # OpenAI API configuration

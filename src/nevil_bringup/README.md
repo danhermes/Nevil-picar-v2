@@ -40,6 +40,12 @@ Starts the complete system on the physical robot hardware with all components:
 # Using nevil wrapper (recommended)
 ./nevil launch nevil_bringup physical_robot.launch.py
 
+#diagnositc
+
+ros2 node list
+ros2 topic info /nevil/text_command
+
+
 # Direct ROS2 launch
 source install/setup.bash
 ros2 launch nevil_bringup physical_robot.launch.py

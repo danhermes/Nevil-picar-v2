@@ -12,6 +12,7 @@ import json
 import os
 from typing import Optional, Dict, Any
 import logging
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 # Import the fixed audio hardware interface
 from audio_hardware_interface import AudioHardwareInterface, OPENAI_AVAILABLE
@@ -54,12 +55,20 @@ class IntegratedAIInterface(Node):
         except Exception as e:
             self.logger.error(f"❌ Failed to initialize AudioHardwareInterface: {e}")
             self.audio_hw = None
+
+        # QoS profile for AI messages
+        self.int_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            durability=DurabilityPolicy.VOLATILE,
+            depth=1
+        ) 
         
         # ROS2 Publishers and Subscribers using std_msgs/String (per architecture docs)
         self.text_response_pub = self.create_publisher(
             String,
             '/nevil/text_response',
-            10
+            qos_profile=self.int_qos
         )
         
         # Subscribe to the correct topic per architecture: /nevil/text_command
@@ -67,7 +76,7 @@ class IntegratedAIInterface(Node):
             String,
             '/nevil/text_command',
             self.handle_text_command,
-            10
+            qos_profile=self.int_qos
         )
         
         # Also subscribe to speech_command for backward compatibility
@@ -75,7 +84,7 @@ class IntegratedAIInterface(Node):
             String,
             '/nevil/speech_command',
             self.handle_text_command,
-            10
+            qos_profile=self.int_qos
         )
         
         # AI conversation context

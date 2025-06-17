@@ -10,6 +10,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 # Define a local get_env_var function
 def get_env_var(name, default=None):
@@ -73,18 +74,26 @@ class SpeechSynthesisNode(Node):
         # Create callback groups
         self.cb_group_subs = MutuallyExclusiveCallbackGroup()
         self.cb_group_pubs = MutuallyExclusiveCallbackGroup()
+
+        # QoS profile for speech messages
+        self.sp_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+            #history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        ) 
         
         # Create publishers
         self.speaking_status_pub = self.create_publisher(
             Bool,
             '/nevil/speaking_status',
-            10
+            qos_profile=self.sp_qos
         )
         
         self.audio_pub = self.create_publisher(
             Audio,
             '/nevil/synthesized_audio',
-            10
+            qos_profile=self.sp_qos
         )
         
         # Create subscribers
@@ -92,7 +101,7 @@ class SpeechSynthesisNode(Node):
             VoiceResponse,
             '/nevil/voice_response',
             self.voice_response_callback,
-            10,
+            qos_profile=self.sp_qos,
             callback_group=self.cb_group_subs
         )
         
@@ -100,7 +109,7 @@ class SpeechSynthesisNode(Node):
             TextResponse,
             '/nevil/text_response',
             self.text_response_callback,
-            10,
+            qos_profile=self.sp_qos,
             callback_group=self.cb_group_subs
         )
         
@@ -108,7 +117,7 @@ class SpeechSynthesisNode(Node):
             DialogState,
             '/nevil/dialog_state',
             self.dialog_state_callback,
-            10,
+            qos_profile=self.sp_qos,
             callback_group=self.cb_group_subs
         )
         

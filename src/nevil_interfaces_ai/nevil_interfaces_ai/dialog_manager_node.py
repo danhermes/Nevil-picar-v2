@@ -17,6 +17,7 @@ from nevil_interfaces.msg import SystemStatus
 from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse, VoiceCommand, VoiceResponse, DialogState
 from nevil_interfaces_ai_msgs.action import ProcessDialog
 from nevil_interfaces_ai_msgs.srv import TranslateCommand
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 class DialogManager(Node):
     """
@@ -46,38 +47,46 @@ class DialogManager(Node):
         self.cb_group_pubs = MutuallyExclusiveCallbackGroup()
         self.cb_group_services = MutuallyExclusiveCallbackGroup()
         self.cb_group_actions = MutuallyExclusiveCallbackGroup()
+
+        # QoS profile for dm messages
+        self.dm_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            #history=HistoryPolicy.KEEP_LAST,
+            durability=DurabilityPolicy.VOLATILE,
+            depth=1
+        ) 
         
-        # Create publishers
-        self.dialog_state_pub = self.create_publisher(
-            DialogState,
-            '/nevil/dialog_state',
-            10
-        )
+        # # Create publishers
+        # self.dialog_state_pub = self.create_publisher(
+        #     DialogState,
+        #     '/nevil/dialog_state',
+        #     qos_profile=self.dm_qos
+        # )
         
-        self.text_response_pub = self.create_publisher(
-            TextResponse,
-            '/nevil/text_response',
-            10
-        )
+        # self.text_response_pub = self.create_publisher(
+        #     TextResponse,
+        #     '/nevil/text_response',
+        #     qos_profile=self.dm_qos
+        # )
         
-        self.voice_response_pub = self.create_publisher(
-            VoiceResponse,
-            '/nevil/voice_response',
-            10
-        )
+        # self.voice_response_pub = self.create_publisher(
+        #     VoiceResponse,
+        #     '/nevil/voice_response',
+        #     qos_profile=self.dm_qos
+        # )
         
-        self.listen_trigger_pub = self.create_publisher(
-            Bool,
-            '/nevil/listen_trigger',
-            10
-        )
+        # self.listen_trigger_pub = self.create_publisher(
+        #     Bool,
+        #     '/nevil/listen_trigger',
+        #     qos_profile=self.dm_qos
+        # )
         
-        self.text_command_pub = self.create_publisher(
-            TextCommand,
-            '/nevil/text_command',
-            10,
-            callback_group=self.cb_group_pubs
-        )
+        # self.text_command_pub = self.create_publisher(
+        #     TextCommand,
+        #     '/nevil/text_command',
+        #     qos_profile=self.dm_qos,
+        #     callback_group=self.cb_group_pubs
+        # )
         
         # Create subscribers
         # NOTE: Disabled text_command subscription to prevent duplicate processing
@@ -90,37 +99,37 @@ class DialogManager(Node):
         #     callback_group=self.cb_group_subs
         # )
         
-        self.voice_command_sub = self.create_subscription(
-            VoiceCommand,
-            '/nevil/voice_command',
-            self.voice_command_callback,
-            10,
-            callback_group=self.cb_group_subs
-        )
+        # self.voice_command_sub = self.create_subscription(
+        #     VoiceCommand,
+        #     '/nevil/voice_command',
+        #     self.voice_command_callback,
+        #     10,
+        #     callback_group=self.cb_group_subs
+        # )
         
-        self.text_response_sub = self.create_subscription(
-            TextResponse,
-            '/nevil/text_response',
-            self.text_response_callback,
-            10,
-            callback_group=self.cb_group_subs
-        )
+        # self.text_response_sub = self.create_subscription(
+        #     TextResponse,
+        #     '/nevil/text_response',
+        #     self.text_response_callback,
+        #     qos_profile=self.dm_qos,
+        #     callback_group=self.cb_group_subs
+        # )
         
-        self.speaking_status_sub = self.create_subscription(
-            Bool,
-            '/nevil/speaking_status',
-            self.speaking_status_callback,
-            10,
-            callback_group=self.cb_group_subs
-        )
+        # self.speaking_status_sub = self.create_subscription(
+        #     Bool,
+        #     '/nevil/speaking_status',
+        #     self.speaking_status_callback,
+        #     qos_profile=self.dm_qos,
+        #     callback_group=self.cb_group_subs
+        # )
         
-        self.system_status_sub = self.create_subscription(
-            SystemStatus,
-            '/system_status',
-            self.system_status_callback,
-            10,
-            callback_group=self.cb_group_subs
-        )
+        # self.system_status_sub = self.create_subscription(
+        #     SystemStatus,
+        #     '/system_status',
+        #     self.system_status_callback,
+        #     qos_profile=self.dm_qos,
+        #     callback_group=self.cb_group_subs
+        # )
         
         # Create service clients
         self.translate_command_client = self.create_client(

@@ -11,6 +11,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 # Define a local get_env_var function
 def get_env_var(name, default=None):
@@ -75,25 +76,33 @@ class SpeechRecognitionNode(Node):
         # Create callback groups
         self.cb_group_subs = MutuallyExclusiveCallbackGroup()
         self.cb_group_pubs = MutuallyExclusiveCallbackGroup()
-        
-        # Create publishers
-        self.voice_command_pub = self.create_publisher(
-            VoiceCommand,
-            '/nevil/voice_command',
-            10
+
+        # QoS profile for speech messages
+        self.sp_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            durability=DurabilityPolicy.VOLATILE,
+            depth=1
         )
+        
+        # # Create publishers
+        # self.voice_command_pub = self.create_publisher(
+        #     VoiceCommand,
+        #     '/nevil/voice_command',
+        #     qos_profile=self.sp_qos
+        # )
         
         self.text_command_pub = self.create_publisher(
             TextCommand,
             '/nevil/text_command',
-            10
+            qos_profile=self.sp_qos
         )
         
-        self.raw_audio_pub = self.create_publisher(
-            Audio,
-            '/nevil/raw_audio',
-            10
-        )
+        # self.raw_audio_pub = self.create_publisher(
+        #     Audio,
+        #     '/nevil/raw_audio',
+        #     qos_profile=self.sp_qos
+        # )
         
         # Create subscribers
         self.listen_trigger_sub = self.create_subscription(
@@ -109,6 +118,15 @@ class SpeechRecognitionNode(Node):
             '/nevil/dialog_state',
             self.dialog_state_callback,
             10,
+            callback_group=self.cb_group_subs
+        )
+        
+        # Subscribe to speaking status for immediate pause/resume
+        self.speaking_status_sub = self.create_subscription(
+            Bool,
+            '/nevil/speaking_status',
+            self.speaking_status_callback,
+            qos_profile=self.sp_qos,
             callback_group=self.cb_group_subs
         )
         
@@ -156,6 +174,19 @@ class SpeechRecognitionNode(Node):
             self.start_listening()
         elif msg.state == 'speaking' and self.is_listening:
             self.stop_listening()
+    
+    def speaking_status_callback(self, msg):
+        """Handle speaking status updates for immediate pause/resume."""
+        is_speaking = msg.data
+        
+        if is_speaking and self.is_listening:
+            # Immediately pause listening when speech synthesis starts
+            self.stop_listening()
+            self.get_logger().info('Paused speech recognition - Nevil is speaking')
+        elif not is_speaking and not self.is_listening:
+            # Resume listening when speech synthesis stops (no dialog manager dependency)
+            self.start_listening()
+            self.get_logger().info('Resumed speech recognition - Nevil finished speaking')
     
     def start_listening(self):
         """Start listening for speech."""
@@ -218,6 +249,11 @@ class SpeechRecognitionNode(Node):
     def process_audio(self, audio):
         """Process audio data and convert to text."""
         if audio is None:
+            return
+        
+        # Don't process audio if we're not supposed to be listening
+        if not self.is_listening:
+            self.get_logger().debug('Skipping audio processing - not listening')
             return
             
         try:
@@ -284,8 +320,8 @@ class SpeechRecognitionNode(Node):
             # self.publish_raw_audio(audio)
             
             # Publish the message
-            self.voice_command_pub.publish(msg)
-            self.get_logger().info(f'Published voice command: {text}')
+            # self.voice_command_pub.publish(msg)
+            self.get_logger().info(f'Voice command disabled (no dialog manager): {text}')
             
         except Exception as e:
             self.get_logger().error(f'Error publishing voice command: {e}')

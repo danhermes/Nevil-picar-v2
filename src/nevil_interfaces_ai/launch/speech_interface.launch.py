@@ -54,13 +54,13 @@ def generate_launch_description():
         output='screen'
     ))
     
-    # Add dialog manager node
-    # Using Node instead of ExecuteProcess to use entry points
-    ld.add_action(Node(
-        package='nevil_interfaces_ai',
-        executable='dialog_manager_node',
-        name='dialog_manager_node',
-        output='screen'
-    ))
+    # # Add dialog manager node
+    # # Using Node instead of ExecuteProcess to use entry points
+    # ld.add_action(Node(
+    #     package='nevil_interfaces_ai',
+    #     executable='dialog_manager_node',
+    #     name='dialog_manager_node',
+    #     output='screen'
+    # ))
     
     return ld

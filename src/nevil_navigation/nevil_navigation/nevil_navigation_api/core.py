@@ -56,7 +56,7 @@ class NevilNavigationAPI:
         self.rt_qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10
+            depth=1
         )
         
         # Create publishers

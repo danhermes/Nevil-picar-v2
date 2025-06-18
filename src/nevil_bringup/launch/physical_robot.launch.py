@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import os
+import subprocess
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -16,7 +17,7 @@ def launch_setup(context, *args, **kwargs):
     # Get package directories
     nevil_bringup_dir = get_package_share_directory('nevil_bringup')
     nevil_core_dir = get_package_share_directory('nevil_core')
-    #nevil_navigation_dir = get_package_share_directory('nevil_navigation')
+    nevil_navigation_dir = get_package_share_directory('nevil_navigation')
     #nevil_perception_dir = get_package_share_directory('nevil_perception')
     nevil_interfaces_ai_dir = get_package_share_directory('nevil_interfaces_ai')
     nevil_realtime_dir = get_package_share_directory('nevil_realtime')
@@ -33,6 +34,23 @@ def launch_setup(context, *args, **kwargs):
     # Create actions list
     actions = []
     
+    # Add minimal cleanup to prevent duplicates of only problematic nodes
+    cleanup_nodes = ExecuteProcess(
+        cmd=['bash', '-c', '''
+            echo "Cleaning up potentially duplicate nodes..."
+            # Only kill nodes that might cause conflicts, not the ones we want to start
+            pkill -f "hardware_init" 2>/dev/null || true
+            pkill -f "system_monitor" 2>/dev/null || true
+            pkill -f "battery_monitor" 2>/dev/null || true
+            # Wait a moment for cleanup
+            sleep 1
+            echo "Minimal cleanup complete"
+        '''],
+        output='screen',
+        name='cleanup_nodes'
+    )
+    actions.append(cleanup_nodes)
+    
     # Include the core system launch file
     core_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -45,17 +63,17 @@ def launch_setup(context, *args, **kwargs):
     )
     actions.append(core_launch)
     
-    # # Include the navigation launch file
-    # navigation_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([
-    #         os.path.join(nevil_navigation_dir, 'launch', 'nevil_navigation.launch.py')
-    #     ]),
-    #     launch_arguments={
-    #         'use_sim': 'false',
-    #         'config_file': config_file
-    #     }.items()
-    # )
-    # actions.append(navigation_launch)
+    # Include the navigation launch file
+    navigation_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            os.path.join(nevil_navigation_dir, 'launch', 'nevil_navigation.launch.py')
+        ]),
+        launch_arguments={
+            'use_sim': 'false',
+            'config_file': config_file
+        }.items()
+    )
+    actions.append(navigation_launch)
     
     # # Include the perception launch file
     # perception_launch = IncludeLaunchDescription(

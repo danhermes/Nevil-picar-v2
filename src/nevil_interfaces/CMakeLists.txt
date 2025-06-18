@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SystemStatus.msg"
   "msg/BehaviorStatus.msg"
   "srv/CheckObstacle.srv"
+  "srv/HardwareCommand.srv"
   "action/NavigateToPoint.action"
   "action/PerformBehavior.action"
   DEPENDENCIES std_msgs geometry_msgs sensor_msgs action_msgs

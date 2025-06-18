@@ -54,7 +54,7 @@ class SystemMonitor(Node):
         self.config = self.load_config(config_file)
         
         # Initialize variables
-        self.system_mode = 'standby'
+        self.system_mode = 'active'  # Start in active mode
         self.components = {}
         self.battery_level = 0.0
         self.cpu_temperature = 0.0

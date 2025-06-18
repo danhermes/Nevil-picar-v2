@@ -11,22 +11,24 @@ from launch_ros.actions import Node
 from nevil_bringup.package_finder import get_python_node_executable_path, get_python_interpreter_executable
 
 def generate_launch_description():
-    # Get the package directory (still useful for other paths like sub-launch files)
-    # pkg_dir = get_package_share_directory('nevil_interfaces_ai') # You can keep this or not, depending on usage
-
+    """
+    Generate launch description for Nevil AI interfaces with action execution.
+    
+    This launch file includes:
+    - Speech recognition and synthesis
+    - AI interface with action execution
+    - Navigation system for action execution
+    - Motion control for hardware interface
+    """
     # Create launch description
     ld = LaunchDescription()
 
-    # Add AI interface node
-    ld.add_action(Node(
-        package='nevil_interfaces_ai',
-        executable='ai_interface_node',
-        name='ai_interface',
-        output='screen',
-    ))
-
-    # Include the speech interface launch file
-    # This one will likely need the same fix applied to *it*
+    # Include the speech interface launch file which now includes:
+    # - Speech recognition node
+    # - Speech synthesis node
+    # - AI interface node (with action execution)
+    # - Navigation node (with action subscription)
+    # - Motion control node
     speech_interface_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             os.path.join(get_package_share_directory('nevil_interfaces_ai'), 'launch', 'speech_interface.launch.py')

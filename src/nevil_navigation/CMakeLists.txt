@@ -34,25 +34,7 @@ find_package(tf2_msgs REQUIRED)
 # Include directories
 include_directories(include)
 
-# Create C++ executable
-add_executable(motion_control_node src/motion_control_node.cpp)
-ament_target_dependencies(motion_control_node
-  rclcpp
-  std_msgs
-  geometry_msgs
-  nevil_interfaces
-  nevil_core
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-  tf2_msgs
-)
-
-# Install C++ executables
-install(TARGETS
-  motion_control_node
-  DESTINATION lib/${PROJECT_NAME}
-)
+# C++ motion control node removed - navigation uses PicarActions directly
 
 # Install Python modules
 ament_python_install_package(${PROJECT_NAME})

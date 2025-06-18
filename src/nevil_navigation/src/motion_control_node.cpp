@@ -5,6 +5,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "nevil_interfaces/srv/hardware_command.hpp"
 
 using namespace std::chrono_literals;
 
@@ -18,6 +19,7 @@ public:
     this->declare_parameter("max_linear_speed", 0.5);  // m/s
     this->declare_parameter("max_angular_speed", 1.0); // rad/s
     this->declare_parameter("safety_enabled", true);
+    this->declare_parameter("use_hardware_bridge", true);
     
     // Create subscribers
     cmd_vel_subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
@@ -29,11 +31,27 @@ public:
     // Create publishers
     motor_status_publisher_ = this->create_publisher<std_msgs::msg::String>("/motor_status", 10);
     
+    // Create hardware service client
+    hardware_client_ = this->create_client<nevil_interfaces::srv::HardwareCommand>("hardware_command");
+    
     // Create timers
     timer_ = this->create_wall_timer(
       100ms, std::bind(&MotionControlNode::timer_callback, this));
     
     RCLCPP_INFO(this->get_logger(), "Motion Control Node initialized");
+    
+    // Wait for hardware service
+    if (this->get_parameter("use_hardware_bridge").as_bool()) {
+      RCLCPP_INFO(this->get_logger(), "Waiting for hardware bridge service...");
+      while (!hardware_client_->wait_for_service(std::chrono::seconds(1))) {
+        if (!rclcpp::ok()) {
+          RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for hardware service");
+          return;
+        }
+        RCLCPP_INFO(this->get_logger(), "Hardware service not available, waiting...");
+      }
+      RCLCPP_INFO(this->get_logger(), "Hardware bridge service connected!");
+    }
   }
 
 private:
@@ -56,13 +74,17 @@ private:
     current_linear_ = linear_x;
     current_angular_ = angular_z;
     
-    RCLCPP_DEBUG(this->get_logger(), "Received velocity command: linear=%.2f, angular=%.2f", 
+    RCLCPP_DEBUG(this->get_logger(), "Received velocity command: linear=%.2f, angular=%.2f",
                 linear_x, angular_z);
     
-    // Here we would send commands to the actual motors
-    // For now, we just log the command
-    RCLCPP_INFO(this->get_logger(), "Setting motor speeds for linear=%.2f, angular=%.2f", 
-               linear_x, angular_z);
+    // Send command to hardware bridge if enabled
+    if (this->get_parameter("use_hardware_bridge").as_bool() && hardware_client_->service_is_ready()) {
+      send_hardware_command(linear_x, angular_z, false, "velocity");
+    } else {
+      // Fallback: just log the command (simulation mode)
+      RCLCPP_INFO(this->get_logger(), "Setting motor speeds for linear=%.2f, angular=%.2f",
+                 linear_x, angular_z);
+    }
   }
   
   void system_mode_callback(const std_msgs::msg::String::SharedPtr msg)
@@ -77,12 +99,46 @@ private:
     }
   }
   
+  void send_hardware_command(double linear_x, double angular_z, bool emergency_stop, const std::string& command_type)
+  {
+    auto request = std::make_shared<nevil_interfaces::srv::HardwareCommand::Request>();
+    request->linear_x = linear_x;
+    request->angular_z = angular_z;
+    request->emergency_stop = emergency_stop;
+    request->command_type = command_type;
+    
+    // Use async_send_request with callback
+    auto response_callback = [this](rclcpp::Client<nevil_interfaces::srv::HardwareCommand>::SharedFuture future) {
+      try {
+        auto response = future.get();
+        if (response->success) {
+          RCLCPP_DEBUG(this->get_logger(), "Hardware command executed successfully: %s (backend: %s)",
+                      response->status_message.c_str(), response->hardware_backend.c_str());
+          hardware_status_ = response->status_message;
+          hardware_backend_ = response->hardware_backend;
+          hardware_ready_ = response->hardware_ready;
+        } else {
+          RCLCPP_WARN(this->get_logger(), "Hardware command failed: %s", response->status_message.c_str());
+          hardware_status_ = "Hardware command failed: " + response->status_message;
+        }
+      } catch (const std::exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "Hardware service call failed: %s", e.what());
+        hardware_status_ = "Service call failed";
+      }
+    };
+    
+    // Send request with callback
+    hardware_client_->async_send_request(request, response_callback);
+  }
+  
   void timer_callback()
   {
     // Publish motor status
     auto message = std_msgs::msg::String();
-    message.data = "Motors running: linear=" + std::to_string(current_linear_) + 
-                  ", angular=" + std::to_string(current_angular_);
+    message.data = "Motors running: linear=" + std::to_string(current_linear_) +
+                  ", angular=" + std::to_string(current_angular_) +
+                  ", backend=" + hardware_backend_ +
+                  ", status=" + hardware_status_;
     motor_status_publisher_->publish(message);
   }
 
@@ -93,6 +149,9 @@ private:
   // Publishers
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr motor_status_publisher_;
   
+  // Service clients
+  rclcpp::Client<nevil_interfaces::srv::HardwareCommand>::SharedPtr hardware_client_;
+  
   // Timers
   rclcpp::TimerBase::SharedPtr timer_;
   
@@ -100,6 +159,9 @@ private:
   double current_linear_ = 0.0;
   double current_angular_ = 0.0;
   std::string current_mode_ = "standby";
+  std::string hardware_status_ = "Not connected";
+  std::string hardware_backend_ = "unknown";
+  bool hardware_ready_ = false;
 };
 
 int main(int argc, char * argv[])

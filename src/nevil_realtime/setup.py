@@ -26,6 +26,7 @@ setup(
             'rt_sensor_node = nevil_realtime.rt_sensor_node:main',
             'rt_motor_control_node = nevil_realtime.rt_motor_control_node:main',
             'rt_hardware_interface_test = nevil_realtime.rt_hardware_interface:main',
+            'hardware_bridge_node.py = nevil_realtime.hardware_bridge_node:main',
         ],
     },
 )

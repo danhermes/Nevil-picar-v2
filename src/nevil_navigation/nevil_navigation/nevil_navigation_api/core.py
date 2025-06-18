@@ -2,156 +2,108 @@
 
 import time
 import math
-import threading
-import rclpy
-from rclpy.node import Node
-from rclpy.action import ActionClient
-from rclpy.callback_groups import RealtimeCallbackGroup, MutuallyExclusiveCallbackGroup
-from rclpy.executors import MultiThreadedExecutor
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-from geometry_msgs.msg import Twist, PoseStamped
-from sensor_msgs.msg import Range
-from std_msgs.msg import Bool, String
+import sys
+import os
+import logging
+from typing import Optional
 
-from nevil_interfaces.action import NavigateToPoint, PerformBehavior
-from nevil_interfaces.srv import CheckObstacle
-from nevil_interfaces.msg import BehaviorStatus, SystemStatus
+# Add picar-x library to path
+PICARX_PATH = '/home/dan/picar-x'
+if PICARX_PATH not in sys.path:
+    sys.path.insert(0, PICARX_PATH)
+
+try:
+    from picarx import Picarx
+    PICARX_AVAILABLE = True
+except ImportError:
+    PICARX_AVAILABLE = False
+    Picarx = None
+
+# Optional ROS2 imports for when ROS2 integration is needed
+try:
+    import rclpy
+    from rclpy.node import Node
+    ROS2_AVAILABLE = True
+except ImportError:
+    ROS2_AVAILABLE = False
+
 
 class NevilNavigationAPI:
     """
-    ROS2 adaptation of the original action_helper.py API from Nevil v1.0.
+    Direct PiCar-X integration for Nevil Navigation API.
     
-    This class provides a compatibility layer that allows existing code
-    to work with the new ROS2 and PREEMPT-RT architecture with minimal changes.
-    
-    It implements the same function signatures as the original action_helper.py
-    where possible, but adapts the implementation to use ROS2 actions, services,
-    and topics, and integrates with the real-time components.
+    This class provides direct hardware control using PiCar-X, bypassing ROS2 actions
+    for immediate response and simplified architecture. It maintains compatibility
+    with the original action_helper.py API.
     """
     
-    def __init__(self, node=None):
+    def __init__(self, node=None, force_mock=False):
         """
-        Initialize the Nevil Navigation API.
+        Initialize the Nevil Navigation API with direct PiCar-X control.
         
         Args:
-            node: An existing ROS2 node to use. If None, a new node will be created.
+            node: Optional ROS2 node for logging (if ROS2 is available)
+            force_mock: Force mock mode for testing (default: False)
         """
-        # Initialize ROS2 if not already initialized
-        if not rclpy.ok():
-            rclpy.init()
+        # Set up logging
+        self.logger = self._setup_logging(node)
         
-        # Create or use an existing node
-        if node is None:
-            self.node = rclpy.create_node('nevil_navigation_api')
-            self.should_spin = True
-        else:
-            self.node = node
-            self.should_spin = False
-        
-        # Create callback groups
-        self.rt_callback_group = RealtimeCallbackGroup()
-        self.regular_callback_group = MutuallyExclusiveCallbackGroup()
-        
-        # Create QoS profiles
-        self.rt_qos = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
-            history=HistoryPolicy.KEEP_LAST,
-            depth=1
-        )
-        
-        # Create publishers
-        self.cmd_vel_pub = self.node.create_publisher(
-            Twist,
-            '/cmd_vel',
-            qos_profile=self.rt_qos
-        )
-        
-        # Create subscribers
-        self.ultrasonic_sub = self.node.create_subscription(
-            Range,
-            '/ultrasonic_data',
-            self._ultrasonic_callback,
-            qos_profile=self.rt_qos,
-            callback_group=self.rt_callback_group
-        )
-        
-        self.system_status_sub = self.node.create_subscription(
-            SystemStatus,
-            '/system_status',
-            self._system_status_callback,
-            10,
-            callback_group=self.regular_callback_group
-        )
-        
-        # Create service clients
-        self.check_obstacle_client = self.node.create_client(
-            CheckObstacle,
-            '/check_obstacle',
-            callback_group=self.regular_callback_group
-        )
-        
-        # Create action clients
-        self.navigate_client = ActionClient(
-            self.node,
-            NavigateToPoint,
-            '/navigate_to_point',
-            callback_group=self.regular_callback_group
-        )
-        
-        self.behavior_client = ActionClient(
-            self.node,
-            PerformBehavior,
-            '/perform_behavior',
-            callback_group=self.regular_callback_group
-        )
-        
-        # Wait for services and action servers
-        self.node.get_logger().info('Waiting for services and action servers...')
-        
-        # Initialize state variables
+        # State variables
         self.current_distance = float('inf')
-        self.safe_distance = 0.5  # 50cm
-        self.danger_distance = 0.2  # 20cm
-        self.system_status = None
+        self.safe_distance = 50.0  # 50cm
+        self.danger_distance = 20.0  # 20cm
         self.emergency_stop = False
+        self.speed = 50  # Default speed (0-100)
         
-        # Constants for movement calculations
-        self.SPEED_TO_CM_PER_SEC = 0.7  # Calibration factor
-        
-        # Start the executor in a separate thread if needed
-        if self.should_spin:
-            self.executor = MultiThreadedExecutor()
-            self.executor.add_node(self.node)
-            self.spin_thread = threading.Thread(target=self._spin)
-            self.spin_thread.daemon = True
-            self.spin_thread.start()
-        
-        self.node.get_logger().info('Nevil Navigation API initialized')
-    
-    def _spin(self):
-        """Spin the executor in a separate thread."""
-        try:
-            self.executor.spin()
-        except Exception as e:
-            self.node.get_logger().error(f'Error in executor: {e}')
-    
-    def _ultrasonic_callback(self, msg):
-        """Callback for ultrasonic sensor data."""
-        self.current_distance = msg.range
-    
-    def _system_status_callback(self, msg):
-        """Callback for system status updates."""
-        self.system_status = msg
-        
-        # Check for emergency stop
-        if msg.has_errors and 'EMERGENCY_STOP' in msg.error_codes:
-            self.emergency_stop = True
+        # Initialize PiCar-X directly
+        if force_mock:
+            self._init_mock_mode()
+        elif PICARX_AVAILABLE:
+            self._init_direct_picarx()
         else:
-            self.emergency_stop = False
+            self._init_mock_mode()
+        
+        self.logger.info('Nevil Navigation API initialized')
+    
+    def _setup_logging(self, node):
+        """Set up logging with ROS2 node if available, otherwise use Python logging."""
+        if node and ROS2_AVAILABLE:
+            return node.get_logger()
+        else:
+            logging.basicConfig(level=logging.INFO)
+            return logging.getLogger(__name__)
+    
+    def _init_direct_picarx(self):
+        """Initialize direct PiCar-X control."""
+        try:
+            if PICARX_AVAILABLE:
+                self.picarx = Picarx()
+                self.logger.info('Direct PiCar-X control initialized')
+            else:
+                raise ImportError("PiCar-X library not available")
+        except Exception as e:
+            self.logger.error(f'Failed to initialize PiCar-X: {e}')
+            self._init_mock_mode()
+    
+    def _init_mock_mode(self):
+        """Initialize mock mode for testing."""
+        self.picarx = None
+        self.logger.info('Mock mode initialized (no hardware control)')
     
     def get_distance(self):
         """Get the current distance from the ultrasonic sensor."""
-        return self.current_distance
+        try:
+            if hasattr(self, 'picarx') and self.picarx:
+                distance = self.picarx.get_distance()
+                if distance is not None:
+                    self.current_distance = distance
+                    return distance
+            
+            return self.current_distance
+            
+        except Exception as e:
+            self.logger.error(f'Failed to get distance: {e}')
+            return float('inf')
     
     def check_obstacle(self, direction=0.0, max_distance=1.0):
         """
@@ -164,48 +116,37 @@ class NevilNavigationAPI:
         Returns:
             A tuple of (obstacle_detected, distance, direction)
         """
-        # Create the request
-        request = CheckObstacle.Request()
-        request.direction = direction
-        request.max_distance = max_distance
-        request.mode = 'single'
-        
-        # Call the service
-        future = self.check_obstacle_client.call_async(request)
-        
-        # Wait for the result
-        rclpy.spin_until_future_complete(self.node, future)
-        
-        # Process the result
-        if future.result() is not None:
-            response = future.result()
-            return (
-                response.obstacle_detected,
-                response.distance,
-                response.obstacle_direction
-            )
-        else:
-            self.node.get_logger().error('Failed to call CheckObstacle service')
+        try:
+            # Get current distance
+            distance_cm = self.get_distance()
+            distance_m = distance_cm / 100.0
+            
+            # Check if obstacle is within max distance
+            obstacle_detected = distance_m < max_distance
+            
+            return (obstacle_detected, distance_m, direction)
+            
+        except Exception as e:
+            self.logger.error(f'Failed to check obstacle: {e}')
             return (False, float('inf'), 0.0)
     
     def with_obstacle_check(self, func):
         """
         Decorator to add obstacle checking to movement functions.
         
-        This is a compatibility wrapper for the original decorator in action_helper.py.
-        It uses the CheckObstacle service to implement the same functionality.
+        This maintains compatibility with the original decorator in action_helper.py.
         """
         def wrapper(car, *args, **kwargs):
             def check_distance():
-                distance = car.get_distance()
-                if distance >= car.safe_distance:
+                distance = self.get_distance()
+                if distance >= self.safe_distance:
                     return "safe"
-                elif distance >= car.danger_distance:
-                    car.set_dir_servo_angle(30)
+                elif distance >= self.danger_distance:
+                    self.set_dir_servo_angle(30)
                     return "caution"
                 else:
-                    car.set_dir_servo_angle(-30)
-                    self.move_backward_this_way(car, 10, car.speed)
+                    self.set_dir_servo_angle(-30)
+                    self.move_backward_this_way(10, self.speed)
                     time.sleep(0.5)
                     return "danger"
             
@@ -219,112 +160,66 @@ class NevilNavigationAPI:
         
         Args:
             distance_cm: Distance to move in centimeters
-            speed: Speed to move at (0.0 to 1.0)
+            speed: Speed to move at (0-100)
             check_obstacles: Whether to check for obstacles during movement
             
         Returns:
             True if movement completed successfully, False otherwise
         """
-        # Convert cm to meters
-        distance_m = distance_cm / 100.0
-        
-        # Default speed if not specified
         if speed is None:
-            speed = 0.5  # Default to 50% speed
+            speed = self.speed
         
         # Clamp speed to valid range
-        speed = max(0.0, min(1.0, speed))
+        speed = max(0, min(100, speed))
         
-        # Calculate linear velocity in m/s
-        linear_velocity = speed * 0.5  # Max speed is 0.5 m/s
+        self.logger.info(f'Moving forward {distance_cm}cm at speed {speed}')
         
-        if check_obstacles:
-            # Use the NavigateToPoint action with obstacle avoidance
-            goal_msg = NavigateToPoint.Goal()
+        try:
+            if hasattr(self, 'picarx') and self.picarx:
+                # Use direct PiCar-X control
+                if check_obstacles:
+                    distance = self.get_distance()
+                    if distance < self.safe_distance:
+                        self.logger.warning(f'Obstacle detected at {distance:.1f}cm, aborting movement')
+                        return False
+                
+                # Calculate movement time
+                move_time = distance_cm / (speed * 0.7)  # Calibration factor
+                
+                # Start movement
+                self.picarx.forward(speed)
+                
+                # Monitor movement
+                start_time = time.time()
+                while time.time() - start_time < move_time:
+                    if self.emergency_stop:
+                        self.picarx.stop()
+                        return False
+                    
+                    if check_obstacles:
+                        distance = self.get_distance()
+                        if distance < self.danger_distance:
+                            self.logger.warning(f'Obstacle detected at {distance:.1f}cm, stopping')
+                            self.picarx.stop()
+                            return False
+                    
+                    time.sleep(0.1)
+                
+                # Stop movement
+                self.picarx.stop()
             
-            # Create a target pose at the specified distance in front of the robot
-            goal_msg.target_pose = PoseStamped()
-            goal_msg.target_pose.header.frame_id = 'base_link'
-            goal_msg.target_pose.header.stamp = self.node.get_clock().now().to_msg()
-            goal_msg.target_pose.pose.position.x = distance_m
-            goal_msg.target_pose.pose.position.y = 0.0
-            goal_msg.target_pose.pose.position.z = 0.0
-            goal_msg.target_pose.pose.orientation.w = 1.0
-            
-            goal_msg.linear_velocity = linear_velocity
-            goal_msg.angular_velocity = 0.0
-            goal_msg.avoid_obstacles = True
-            goal_msg.goal_tolerance = 0.05  # 5cm tolerance
-            
-            # Send the goal
-            self.node.get_logger().info(f'Moving forward {distance_cm}cm at speed {speed}')
-            
-            # Wait for the action server
-            if not self.navigate_client.wait_for_server(timeout_sec=1.0):
-                self.node.get_logger().error('Navigate action server not available')
-                return False
-            
-            # Send the goal
-            send_goal_future = self.navigate_client.send_goal_async(goal_msg)
-            
-            # Wait for the goal to be accepted
-            rclpy.spin_until_future_complete(self.node, send_goal_future)
-            goal_handle = send_goal_future.result()
-            
-            if not goal_handle.accepted:
-                self.node.get_logger().error('Navigate goal rejected')
-                return False
-            
-            # Wait for the result
-            get_result_future = goal_handle.get_result_async()
-            rclpy.spin_until_future_complete(self.node, get_result_future)
-            
-            result = get_result_future.result().result
-            
-            if result.success:
-                self.node.get_logger().info('Movement completed successfully')
-                return True
             else:
-                self.node.get_logger().warn(f'Movement failed: {result.message}')
-                return False
-        else:
-            # Direct control using cmd_vel for simpler movements
-            self.node.get_logger().info(f'Moving forward {distance_cm}cm at speed {speed}')
+                # Mock mode
+                self.logger.info(f'Mock: Moving forward {distance_cm}cm at speed {speed}')
+                time.sleep(1.0)  # Simulate movement time
             
-            # Calculate move time based on distance and speed
-            move_time = distance_m / linear_velocity
-            
-            # Create and send the command
-            cmd = Twist()
-            cmd.linear.x = linear_velocity
-            cmd.angular.z = 0.0
-            
-            # Start time
-            start_time = time.time()
-            
-            # Send commands until we've moved the desired distance
-            while time.time() - start_time < move_time:
-                # Check for emergency stop
-                if self.emergency_stop:
-                    self.node.get_logger().warn('Emergency stop triggered')
-                    self.stop()
-                    return False
-                
-                # Check for obstacles if requested
-                if check_obstacles and self.current_distance < self.danger_distance:
-                    self.node.get_logger().warn(f'Obstacle detected at {self.current_distance:.2f}m')
-                    self.stop()
-                    return False
-                
-                # Send the command
-                self.cmd_vel_pub.publish(cmd)
-                time.sleep(0.1)
-            
-            # Stop the robot
-            self.stop()
-            
-            self.node.get_logger().info('Movement completed')
+            self.logger.info('Movement completed')
             return True
+            
+        except Exception as e:
+            self.logger.error(f'Movement failed: {e}')
+            self.stop()
+            return False
     
     def move_backward_this_way(self, distance_cm, speed=None):
         """
@@ -332,55 +227,47 @@ class NevilNavigationAPI:
         
         Args:
             distance_cm: Distance to move in centimeters
-            speed: Speed to move at (0.0 to 1.0)
+            speed: Speed to move at (0-100)
             
         Returns:
             True if movement completed successfully, False otherwise
         """
-        # Convert cm to meters
-        distance_m = distance_cm / 100.0
-        
-        # Default speed if not specified
         if speed is None:
-            speed = 0.5  # Default to 50% speed
+            speed = self.speed
         
         # Clamp speed to valid range
-        speed = max(0.0, min(1.0, speed))
+        speed = max(0, min(100, speed))
         
-        # Calculate linear velocity in m/s (negative for backward)
-        linear_velocity = -speed * 0.5  # Max speed is 0.5 m/s
+        self.logger.info(f'Moving backward {distance_cm}cm at speed {speed}')
         
-        # Direct control using cmd_vel for backward movement
-        self.node.get_logger().info(f'Moving backward {distance_cm}cm at speed {speed}')
-        
-        # Calculate move time based on distance and speed
-        move_time = distance_m / abs(linear_velocity)
-        
-        # Create and send the command
-        cmd = Twist()
-        cmd.linear.x = linear_velocity
-        cmd.angular.z = 0.0
-        
-        # Start time
-        start_time = time.time()
-        
-        # Send commands until we've moved the desired distance
-        while time.time() - start_time < move_time:
-            # Check for emergency stop
-            if self.emergency_stop:
-                self.node.get_logger().warn('Emergency stop triggered')
-                self.stop()
-                return False
+        try:
+            if hasattr(self, 'picarx') and self.picarx:
+                # Use direct PiCar-X control
+                move_time = distance_cm / (speed * 0.7)
+                
+                self.picarx.backward(speed)
+                
+                start_time = time.time()
+                while time.time() - start_time < move_time:
+                    if self.emergency_stop:
+                        self.picarx.stop()
+                        return False
+                    time.sleep(0.1)
+                
+                self.picarx.stop()
             
-            # Send the command
-            self.cmd_vel_pub.publish(cmd)
-            time.sleep(0.1)
-        
-        # Stop the robot
-        self.stop()
-        
-        self.node.get_logger().info('Movement completed')
-        return True
+            else:
+                # Mock mode
+                self.logger.info(f'Mock: Moving backward {distance_cm}cm at speed {speed}')
+                time.sleep(1.0)
+            
+            self.logger.info('Backward movement completed')
+            return True
+            
+        except Exception as e:
+            self.logger.error(f'Backward movement failed: {e}')
+            self.stop()
+            return False
     
     def turn_left(self):
         """
@@ -389,24 +276,30 @@ class NevilNavigationAPI:
         Returns:
             True if turn completed successfully, False otherwise
         """
-        self.node.get_logger().info('Starting left turn sequence')
+        self.logger.info('Starting left turn sequence')
         
-        # Set wheel angle to -30 degrees
-        self.set_dir_servo_angle(-30)
-        
-        # Move forward first segment
-        if not self.move_forward_this_way(20):
+        try:
+            # Set wheel angle to -30 degrees
+            self.set_dir_servo_angle(-30)
+            
+            # Move forward first segment
+            if not self.move_forward_this_way(20):
+                return False
+            
+            # Straighten wheels
+            self.set_dir_servo_angle(0)
+            
+            # Move forward second segment
+            if not self.move_forward_this_way(20):
+                return False
+            
+            self.logger.info('Left turn complete')
+            return True
+            
+        except Exception as e:
+            self.logger.error(f'Left turn failed: {e}')
+            self.stop()
             return False
-        
-        # Straighten wheels
-        self.set_dir_servo_angle(0)
-        
-        # Move forward second segment
-        if not self.move_forward_this_way(20):
-            return False
-        
-        self.node.get_logger().info('Left turn complete')
-        return True
     
     def turn_right(self):
         """
@@ -415,24 +308,30 @@ class NevilNavigationAPI:
         Returns:
             True if turn completed successfully, False otherwise
         """
-        self.node.get_logger().info('Starting right turn sequence')
+        self.logger.info('Starting right turn sequence')
         
-        # Set wheel angle to 30 degrees
-        self.set_dir_servo_angle(30)
-        
-        # Move forward first segment
-        if not self.move_forward_this_way(20):
+        try:
+            # Set wheel angle to 30 degrees
+            self.set_dir_servo_angle(30)
+            
+            # Move forward first segment
+            if not self.move_forward_this_way(20):
+                return False
+            
+            # Straighten wheels
+            self.set_dir_servo_angle(0)
+            
+            # Move forward second segment
+            if not self.move_forward_this_way(20):
+                return False
+            
+            self.logger.info('Right turn complete')
+            return True
+            
+        except Exception as e:
+            self.logger.error(f'Right turn failed: {e}')
+            self.stop()
             return False
-        
-        # Straighten wheels
-        self.set_dir_servo_angle(0)
-        
-        # Move forward second segment
-        if not self.move_forward_this_way(20):
-            return False
-        
-        self.node.get_logger().info('Right turn complete')
-        return True
     
     def stop(self):
         """
@@ -441,63 +340,96 @@ class NevilNavigationAPI:
         Returns:
             True if stop command was sent successfully
         """
-        cmd = Twist()
-        cmd.linear.x = 0.0
-        cmd.angular.z = 0.0
-        self.cmd_vel_pub.publish(cmd)
-        return True
+        try:
+            if hasattr(self, 'picarx') and self.picarx:
+                self.picarx.stop()
+            else:
+                self.logger.info('Mock: Stopping robot')
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f'Stop failed: {e}')
+            return False
     
     def set_dir_servo_angle(self, angle):
         """
         Set the direction servo angle.
         
         Args:
-            angle: Angle in degrees
+            angle: Angle in degrees (-30 to 30)
             
         Returns:
             True if command was sent successfully
         """
-        # Convert angle to radians
-        angle_rad = math.radians(angle)
-        
-        # Create and send the command
-        cmd = Twist()
-        cmd.linear.x = 0.0
-        cmd.angular.z = angle_rad
-        self.cmd_vel_pub.publish(cmd)
-        return True
+        try:
+            # Clamp angle to valid range
+            angle = max(-30, min(30, angle))
+            
+            if hasattr(self, 'picarx') and self.picarx:
+                self.picarx.set_dir_servo_angle(angle)
+            else:
+                self.logger.info(f'Mock: Setting steering angle to {angle} degrees')
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f'Failed to set steering angle: {e}')
+            return False
     
     def set_cam_pan_angle(self, angle):
         """
         Set the camera pan angle.
         
         Args:
-            angle: Angle in degrees
+            angle: Angle in degrees (-90 to 90)
             
         Returns:
             True if command was sent successfully
         """
-        # This would be implemented using a camera control service or topic
-        self.node.get_logger().info(f'Setting camera pan angle to {angle} degrees')
-        return True
+        try:
+            # Clamp angle to valid range
+            angle = max(-90, min(90, angle))
+            
+            if hasattr(self, 'picarx') and self.picarx:
+                self.picarx.set_cam_pan_angle(angle)
+            else:
+                self.logger.info(f'Mock: Setting camera pan angle to {angle} degrees')
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f'Failed to set camera pan angle: {e}')
+            return False
     
     def set_cam_tilt_angle(self, angle):
         """
         Set the camera tilt angle.
         
         Args:
-            angle: Angle in degrees
+            angle: Angle in degrees (-35 to 65)
             
         Returns:
             True if command was sent successfully
         """
-        # This would be implemented using a camera control service or topic
-        self.node.get_logger().info(f'Setting camera tilt angle to {angle} degrees')
-        return True
+        try:
+            # Clamp angle to valid range
+            angle = max(-35, min(65, angle))
+            
+            if hasattr(self, 'picarx') and self.picarx:
+                self.picarx.set_cam_tilt_angle(angle)
+            else:
+                self.logger.info(f'Mock: Setting camera tilt angle to {angle} degrees')
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f'Failed to set camera tilt angle: {e}')
+            return False
     
     def perform_behavior(self, behavior_name, duration=5.0, **params):
         """
-        Perform a predefined behavior.
+        Perform a predefined behavior using direct hardware control.
         
         Args:
             behavior_name: Name of the behavior to perform
@@ -507,54 +439,145 @@ class NevilNavigationAPI:
         Returns:
             True if behavior completed successfully, False otherwise
         """
-        # Create the goal message
-        goal_msg = PerformBehavior.Goal()
-        goal_msg.behavior_id = behavior_name.lower().replace(' ', '_')
-        goal_msg.behavior_name = behavior_name
-        goal_msg.behavior_category = 'expression'
-        goal_msg.duration = duration
+        self.logger.info(f'Performing behavior: {behavior_name}')
         
-        # Add parameters
-        param_names = []
-        param_values = []
-        for key, value in params.items():
-            param_names.append(key)
-            param_values.append(str(value))
-        
-        goal_msg.param_names = param_names
-        goal_msg.param_values = param_values
-        
-        # Wait for the action server
-        if not self.behavior_client.wait_for_server(timeout_sec=1.0):
-            self.node.get_logger().error('Behavior action server not available')
-            return False
-        
-        # Send the goal
-        self.node.get_logger().info(f'Performing behavior: {behavior_name}')
-        send_goal_future = self.behavior_client.send_goal_async(goal_msg)
-        
-        # Wait for the goal to be accepted
-        rclpy.spin_until_future_complete(self.node, send_goal_future)
-        goal_handle = send_goal_future.result()
-        
-        if not goal_handle.accepted:
-            self.node.get_logger().error('Behavior goal rejected')
-            return False
-        
-        # Wait for the result
-        get_result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(self.node, get_result_future)
-        
-        result = get_result_future.result().result
-        
-        if result.success:
-            self.node.get_logger().info(f'Behavior completed successfully in {result.actual_duration:.2f}s')
-            return True
-        else:
-            self.node.get_logger().warn(f'Behavior failed: {result.message}')
+        try:
+            behavior_method = getattr(self, f'_behavior_{behavior_name.lower().replace(" ", "_")}', None)
+            if behavior_method:
+                return behavior_method(duration, **params)
+            else:
+                self.logger.warning(f'Unknown behavior: {behavior_name}')
+                return False
+                
+        except Exception as e:
+            self.logger.error(f'Behavior {behavior_name} failed: {e}')
             return False
     
-    # Implement the original action_helper.py behaviors using the perform_behavior method
+    # Behavior implementations using direct hardware control
+    
+    def _behavior_wave_hands(self, duration=3.0, **params):
+        """Wave the robot's hands (steering servos)."""
+        end_time = time.time() + duration
+        while time.time() < end_time:
+            self.set_dir_servo_angle(30)
+            time.sleep(0.5)
+            self.set_dir_servo_angle(-30)
+            time.sleep(0.5)
+        self.set_dir_servo_angle(0)
+        return True
+    
+    def _behavior_resist(self, duration=3.0, **params):
+        """Make the robot resist (move servos back and forth)."""
+        return self._behavior_wave_hands(duration, **params)
+    
+    def _behavior_act_cute(self, duration=3.0, **params):
+        """Make the robot act cute."""
+        self.set_cam_tilt_angle(30)
+        time.sleep(0.5)
+        self.set_dir_servo_angle(15)
+        time.sleep(0.5)
+        self.set_dir_servo_angle(-15)
+        time.sleep(0.5)
+        self.set_dir_servo_angle(0)
+        self.set_cam_tilt_angle(0)
+        return True
+    
+    def _behavior_rub_hands(self, duration=3.0, **params):
+        """Make the robot rub hands (steering servos)."""
+        end_time = time.time() + duration
+        while time.time() < end_time:
+            self.set_dir_servo_angle(15)
+            time.sleep(0.2)
+            self.set_dir_servo_angle(-15)
+            time.sleep(0.2)
+        self.set_dir_servo_angle(0)
+        return True
+    
+    def _behavior_think(self, duration=3.0, **params):
+        """Make the robot think (move camera and steering)."""
+        self.set_cam_pan_angle(30)
+        self.set_cam_tilt_angle(20)
+        time.sleep(1.0)
+        self.set_cam_pan_angle(-30)
+        time.sleep(1.0)
+        self.set_cam_pan_angle(0)
+        self.set_cam_tilt_angle(0)
+        return True
+    
+    def _behavior_keep_think(self, duration=5.0, **params):
+        """Make the robot keep thinking (continuous movement)."""
+        end_time = time.time() + duration
+        while time.time() < end_time:
+            self.set_cam_pan_angle(20)
+            time.sleep(0.5)
+            self.set_cam_pan_angle(-20)
+            time.sleep(0.5)
+        self.set_cam_pan_angle(0)
+        return True
+    
+    def _behavior_shake_head(self, duration=3.0, **params):
+        """Make the robot shake its head (camera pan)."""
+        for _ in range(3):
+            self.set_cam_pan_angle(45)
+            time.sleep(0.3)
+            self.set_cam_pan_angle(-45)
+            time.sleep(0.3)
+        self.set_cam_pan_angle(0)
+        return True
+    
+    def _behavior_nod(self, duration=3.0, **params):
+        """Make the robot nod (camera tilt)."""
+        for _ in range(3):
+            self.set_cam_tilt_angle(30)
+            time.sleep(0.3)
+            self.set_cam_tilt_angle(-20)
+            time.sleep(0.3)
+        self.set_cam_tilt_angle(0)
+        return True
+    
+    def _behavior_depressed(self, duration=3.0, **params):
+        """Make the robot look depressed."""
+        self.set_cam_tilt_angle(-30)
+        self.set_dir_servo_angle(-15)
+        time.sleep(duration)
+        self.set_cam_tilt_angle(0)
+        self.set_dir_servo_angle(0)
+        return True
+    
+    def _behavior_twist_body(self, duration=3.0, **params):
+        """Make the robot twist its body."""
+        for _ in range(2):
+            self.set_dir_servo_angle(30)
+            time.sleep(0.5)
+            self.set_dir_servo_angle(-30)
+            time.sleep(0.5)
+        self.set_dir_servo_angle(0)
+        return True
+    
+    def _behavior_celebrate(self, duration=3.0, **params):
+        """Make the robot celebrate."""
+        for _ in range(3):
+            self.set_cam_tilt_angle(45)
+            self.set_dir_servo_angle(30)
+            time.sleep(0.3)
+            self.set_cam_tilt_angle(0)
+            self.set_dir_servo_angle(-30)
+            time.sleep(0.3)
+        self.set_cam_tilt_angle(0)
+        self.set_dir_servo_angle(0)
+        return True
+    
+    def _behavior_honk(self, duration=1.0, **params):
+        """Make the robot honk."""
+        self.logger.info('Honk! Honk!')
+        return True
+    
+    def _behavior_start_engine(self, duration=2.0, **params):
+        """Make the robot start its engine sound."""
+        self.logger.info('Engine starting...')
+        return True
+    
+    # Convenience methods for compatibility
     
     def wave_hands(self):
         """Wave the robot's hands (steering servos)."""
@@ -610,11 +633,16 @@ class NevilNavigationAPI:
     
     def shutdown(self):
         """Shutdown the API and clean up resources."""
-        if self.should_spin:
-            self.executor.shutdown()
-            self.spin_thread.join()
-        
-        self.node.get_logger().info('Nevil Navigation API shutdown')
+        try:
+            self.stop()
+            
+            if hasattr(self, 'picarx') and self.picarx:
+                self.picarx.reset()
+            
+            self.logger.info('Nevil Navigation API shutdown')
+            
+        except Exception as e:
+            self.logger.error(f'Shutdown failed: {e}')
 
 
 # Define dictionaries for compatibility with the original action_helper.py

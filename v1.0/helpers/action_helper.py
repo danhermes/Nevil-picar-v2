@@ -130,45 +130,45 @@ def turn_left_in_place(car):
 def turn_right_in_place(car):
     car.set_dir_servo_angle(30)
 
-@with_obstacle_check
-def come_here(car, check_distance=None):
-    car.Vilib.face_detect_switch(True)
-    speed = 15
-    dir_angle = 0
-    x_angle = 0
-    y_angle = 0
+# @with_obstacle_check
+# def come_here(car, check_distance=None):
+#     car.Vilib.face_detect_switch(True)
+#     speed = 15
+#     dir_angle = 0
+#     x_angle = 0
+#     y_angle = 0
     
-    while True:
-        status = check_distance()
-        if status == "danger":
-            gray_print("Obstacle too close! Backing up.")
-            break
-        elif status == "caution":
-            gray_print("Obstacle detected! Adjusting course.")
+#     while True:
+#         status = check_distance()
+#         if status == "danger":
+#             gray_print("Obstacle too close! Backing up.")
+#             break
+#         elif status == "caution":
+#             gray_print("Obstacle detected! Adjusting course.")
             
-        if car.Vilib.detect_obj_parameter['face'] != 0:
-            coordinate_x = Vilib.detect_obj_parameter['face_x']
-            coordinate_y = Vilib.detect_obj_parameter['face_y']
+#         if car.Vilib.detect_obj_parameter['face'] != 0:
+#             coordinate_x = Vilib.detect_obj_parameter['face_x']
+#             coordinate_y = Vilib.detect_obj_parameter['face_y']
             
-            x_angle += (coordinate_x*10/640)-5
-            x_angle = clamp_number(x_angle,-35,35)
-            car.set_cam_pan_angle(x_angle)
+#             x_angle += (coordinate_x*10/640)-5
+#             x_angle = clamp_number(x_angle,-35,35)
+#             car.set_cam_pan_angle(x_angle)
 
-            y_angle -= (coordinate_y*10/480)-5
-            y_angle = clamp_number(y_angle,-35,35)
-            car.set_cam_tilt_angle(y_angle)
+#             y_angle -= (coordinate_y*10/480)-5
+#             y_angle = clamp_number(y_angle,-35,35)
+#             car.set_cam_tilt_angle(y_angle)
 
-            if dir_angle > x_angle:
-                dir_angle -= 1
-            elif dir_angle < x_angle:
-                dir_angle += 1
-            car.set_dir_servo_angle(x_angle)
-            move_forward_this_way(car,10,40)
-            sleep(0.05)
-        else:
-            move_forward_this_way(car,5,5)
-            Vilib.face_detect_switch(False)
-            sleep(0.05)
+#             if dir_angle > x_angle:
+#                 dir_angle -= 1
+#             elif dir_angle < x_angle:
+#                 dir_angle += 1
+#             car.set_dir_servo_angle(x_angle)
+#             move_forward_this_way(car,10,40)
+#             sleep(0.05)
+#         else:
+#             move_forward_this_way(car,5,5)
+#             Vilib.face_detect_switch(False)
+#             sleep(0.05)
 
 def clamp_number(num,a,b):
   return max(min(num, max(a, b)), min(a, b))
@@ -398,7 +398,7 @@ actions_dict = {
     "stop": stop,
     "twist left": turn_left_in_place,
     "twist right": turn_right_in_place,
-    "come here": come_here,
+    #"come here": come_here,
     "shake head": shake_head,
     "nod": nod,
     "wave hands": wave_hands,

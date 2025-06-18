@@ -1,0 +1,16 @@
+# Hardware Command Service Interface
+# This service enables communication between C++ motion control and Python hardware abstraction
+
+# Request - Motion command parameters
+float64 linear_x      # Linear velocity in m/s (forward/backward)
+float64 angular_z     # Angular velocity in rad/s (rotation)
+bool emergency_stop   # Emergency stop flag - immediately halt all motion
+string command_type   # Command type: "move", "stop", "status"
+---
+# Response - Execution status and feedback
+bool success          # True if command was executed successfully
+string status_message # Human-readable status or error message
+string hardware_backend # Active backend: "physical" or "simulation"
+float64 actual_linear_x  # Actual linear velocity achieved
+float64 actual_angular_z # Actual angular velocity achieved
+bool hardware_ready   # True if hardware is initialized and ready

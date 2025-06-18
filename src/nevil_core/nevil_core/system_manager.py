@@ -27,7 +27,7 @@ class SystemManager(Node):
         )
         
         # Initialize parameters
-        self.declare_parameter('system_mode', 'standby')
+        self.declare_parameter('system_mode', 'active')
         
         # Create publishers
         self.mode_publisher = self.create_publisher(

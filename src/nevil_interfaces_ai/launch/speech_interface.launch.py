@@ -54,6 +54,39 @@ def generate_launch_description():
         output='screen'
     ))
     
+    # Add AI interface node for action execution
+    ld.add_action(Node(
+        package='nevil_interfaces_ai',
+        executable='ai_interface_node',
+        name='ai_interface_node',
+        output='screen'
+    ))
+    
+    # Add navigation node for action execution
+    ld.add_action(Node(
+        package='nevil_navigation',
+        executable='navigation_node.py',
+        name='navigation_node',
+        output='screen',
+        parameters=[
+            {'navigation_mode': 'autonomous'},
+            {'max_speed': 0.5}
+        ]
+    ))
+    
+    # Add motion control node
+    ld.add_action(Node(
+        package='nevil_navigation',
+        executable='motion_control_node',
+        name='motion_control_node',
+        output='screen',
+        parameters=[
+            {'max_linear_speed': 0.5},
+            {'max_angular_speed': 1.0},
+            {'safety_enabled': True}
+        ]
+    ))
+    
     # # Add dialog manager node
     # # Using Node instead of ExecuteProcess to use entry points
     # ld.add_action(Node(

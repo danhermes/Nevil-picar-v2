@@ -587,14 +587,21 @@ class AudioHardwareInterface:
             self.logger.error(f'Failed to recognize speech: {e}')
             return ""
 
-    def set_speech_recognition_parameters(self, energy_threshold=None, pause_threshold=None, dynamic_energy=None):
+    def set_speech_recognition_parameters(self, energy_threshold=None, pause_threshold=None, dynamic_energy=None,
+                                        dynamic_energy_adjustment_damping=None, dynamic_energy_ratio=None,
+                                        operation_timeout=None, phrase_threshold=None, non_speaking_duration=None):
         """
         Set speech recognition parameters with proper mutex handling.
         
         Args:
-            energy_threshold: Energy level threshold for considering an audio frame as speech
+            energy_threshold: Energy level threshold for considering an audio frame as speech (50-4000 range)
             pause_threshold: Seconds of non-speaking audio before a phrase is considered complete
             dynamic_energy: Whether to dynamically adjust the energy threshold based on ambient noise
+            dynamic_energy_adjustment_damping: Controls adaptation rate of energy threshold (0-1 range)
+            dynamic_energy_ratio: How much louder speech must be vs ambient noise
+            operation_timeout: Maximum seconds to wait for speech input before timeout
+            phrase_threshold: Minimum seconds of speaking audio before considering it a phrase
+            non_speaking_duration: Seconds of non-speaking audio to keep on both sides of recording
         """
         if self.simulation_mode or not self.recognizer:
             # In simulation mode, just log the parameters
@@ -615,6 +622,29 @@ class AudioHardwareInterface:
                 if dynamic_energy is not None:
                     self.recognizer.dynamic_energy_threshold = dynamic_energy
                     self.logger.debug(f'Set dynamic energy to {dynamic_energy}')
+                
+                # Apply v1.0 advanced parameters if the recognizer supports them
+                if dynamic_energy_adjustment_damping is not None and hasattr(self.recognizer, 'dynamic_energy_adjustment_damping'):
+                    self.recognizer.dynamic_energy_adjustment_damping = dynamic_energy_adjustment_damping
+                    self.logger.debug(f'Set dynamic energy adjustment damping to {dynamic_energy_adjustment_damping}')
+                
+                if dynamic_energy_ratio is not None and hasattr(self.recognizer, 'dynamic_energy_ratio'):
+                    self.recognizer.dynamic_energy_ratio = dynamic_energy_ratio
+                    self.logger.debug(f'Set dynamic energy ratio to {dynamic_energy_ratio}')
+                
+                if operation_timeout is not None and hasattr(self.recognizer, 'operation_timeout'):
+                    self.recognizer.operation_timeout = operation_timeout
+                    self.logger.debug(f'Set operation timeout to {operation_timeout}')
+                
+                if phrase_threshold is not None and hasattr(self.recognizer, 'phrase_threshold'):
+                    self.recognizer.phrase_threshold = phrase_threshold
+                    self.logger.debug(f'Set phrase threshold to {phrase_threshold}')
+                
+                if non_speaking_duration is not None and hasattr(self.recognizer, 'non_speaking_duration'):
+                    self.recognizer.non_speaking_duration = non_speaking_duration
+                    self.logger.debug(f'Set non-speaking duration to {non_speaking_duration}')
+                
+                self.logger.info('Speech recognition parameters updated with v1.0 configuration')
         except Exception as e:
             self.logger.error(f'Failed to set speech recognition parameters: {e}')
 

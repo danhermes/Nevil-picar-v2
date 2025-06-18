@@ -6,9 +6,10 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPo
 from rclpy.node import Node
 from rclpy.action import ActionServer
 from std_msgs.msg import String
-from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse
+from nevil_interfaces_ai_msgs.msg import TextCommand, TextResponse, AICommand
 from nevil_interfaces_ai_msgs.action import ProcessDialog
 from dotenv import load_dotenv
+import json
 
 class AIInterfaceNode(Node):
     def __init__(self):
@@ -48,7 +49,7 @@ class AIInterfaceNode(Node):
 
         # Publishers
         self.text_response_pub = self.create_publisher(TextResponse, '/nevil/text_response', qos_profile=self.ai_qos)
-
+        self.action_command_pub = self.create_publisher(AICommand, '/nevil/action_command', qos_profile=self.ai_qos)
         self.status_pub = self.create_publisher(String, 'ai_status', qos_profile=self.ai_qos)
         
         # Subscribers
@@ -265,8 +266,6 @@ class AIInterfaceNode(Node):
     def parse_assistant_response(self, response_text):
         """Parse assistant response and extract only the answer field for speech synthesis"""
         try:
-            import json
-            
             # Try to parse as JSON
             response_data = json.loads(response_text)
             
@@ -275,9 +274,12 @@ class AIInterfaceNode(Node):
                 answer = response_data["answer"]
                 self.get_logger().info(f'Extracted answer for speech: {answer}')
                 
-                # Log other fields for debugging but don't speak them
+                # Process actions if present
                 if "actions" in response_data:
                     self.get_logger().info(f'Actions: {response_data["actions"]}')
+                    self.execute_actions(response_data["actions"])
+                
+                # Log other fields for debugging but don't speak them
                 if "mood" in response_data:
                     self.get_logger().info(f'Mood: {response_data["mood"]}')
                 
@@ -320,6 +322,64 @@ class AIInterfaceNode(Node):
         
         # Default response
         return "I'm not sure how to respond to that. Could you rephrase your request?"
+    
+    def execute_actions(self, actions):
+        """Execute actions extracted from AI response"""
+        self.get_logger().info(f'Actions from AI Interface node...')
+        if not actions:
+            return
+        
+        # Handle both single action and list of actions
+        if isinstance(actions, str):
+            actions = [actions]
+        elif not isinstance(actions, list):
+            self.get_logger().warning(f'Invalid actions format: {actions}')
+            return
+        
+        for action in actions:
+            try:
+                self.publish_action_command(action)
+                self.get_logger().info(f'Action sent from AI Interface node: {action}')
+            except Exception as e:
+                self.get_logger().error(f'Error executing action {action}: {str(e)}')
+    
+    def publish_action_command(self, action):
+        """Publish an action command for the navigation system"""
+        try:
+            # Parse action string or dict
+            if isinstance(action, str):
+                # Handle string actions with parameters like "forward 30"
+                parts = action.split()
+                if len(parts) > 1:
+                    command_type = parts[0]
+                    # Try to parse numeric parameter
+                    try:
+                        distance = float(parts[1])
+                        command_data = json.dumps({"distance": distance, "duration": 2.0})
+                    except ValueError:
+                        command_data = json.dumps({"parameter": parts[1]})
+                else:
+                    command_type = action
+                    command_data = "{}"
+            elif isinstance(action, dict):
+                # Complex action with parameters
+                command_type = action.get('type', action.get('action', 'unknown'))
+                command_data = json.dumps(action)
+            else:
+                self.get_logger().warning(f'Invalid action format: {action}')
+                return
+            
+            # Create and publish AICommand message
+            action_msg = AICommand()
+            action_msg.header.stamp = self.get_clock().now().to_msg()
+            action_msg.command_type = command_type
+            action_msg.command_data = command_data
+            
+            self.action_command_pub.publish(action_msg)
+            self.get_logger().info(f'Published action command: {command_type} with data: {command_data}')
+            
+        except Exception as e:
+            self.get_logger().error(f'Error publishing action command: {str(e)}')
 
 def main(args=None):
     rclpy.init(args=args)

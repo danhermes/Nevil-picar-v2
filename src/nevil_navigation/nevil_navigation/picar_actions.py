@@ -1,0 +1,381 @@
+import sys
+import os
+from time import sleep
+import rclpy
+from rclpy.node import Node
+import time
+
+# Actions: forward, backward, left, right, stop, twist left, twist right, come here, shake head,
+#    nod, wave hands, resist, act cute, rub hands, think, twist body, celebrate, depressed, keep think
+#
+# Sounds: honk, start engine
+
+class PicarActions(Node):
+    def __init__(self):
+        super().__init__('picar_actions')
+        self.get_logger().info(f"Starting PicarActions().")
+
+    # Removed obstacle check decorator - will be reimplemented when hardware integration is added
+
+    def move_forward_this_way(self, distance_cm=20, speed=None):
+        """Move forward a specific distance at given speed"""
+        distance_cm = distance_cm * 3 #calibrate distance
+        if speed is None:
+            speed = self.speed
+        self.get_logger().info(f"Starting forward movement: distance={distance_cm}cm, speed={speed}")
+        
+        SPEED_TO_CM_PER_SEC = 0.7  # Needs calibration
+        move_time = distance_cm / (speed * SPEED_TO_CM_PER_SEC)
+        self.get_logger().info(f"Calculated move time: {move_time:.2f} seconds")
+        elapsed_time = 0
+        
+        while elapsed_time < move_time:
+            self.car.forward(speed)
+            sleep(0.1)
+            elapsed_time += 0.1
+            if elapsed_time % 1 < 0.1:
+                self.get_logger().info(f"Moving... elapsed={elapsed_time:.1f}s")
+        
+        self.get_logger().info("Movement complete, stopping")
+        self.car.stop()
+
+    # def move_forward(car):
+    #     distance = car.get_distance()
+    #     if distance >= car.SafeDistance:
+    #         car.set_dir_servo_angle(0)
+    #         car.forward(car.speed)
+    #     elif distance >= car.DangerDistance:
+    #         car.set_dir_servo_angle(30)
+    #         car.forward(car.speed)
+    #         sleep(0.1)
+    #     else:
+    #         car.set_dir_servo_angle(-30)
+    #         car.backward(car.speed)
+
+    def move_backward_this_way(self, distance_cm=20, speed=None):
+        """Move backward a specific distance at given speed"""
+        if speed is None:
+            speed = self.speed
+        self.get_logger().info(f"Starting backward movement: distance={distance_cm}cm, speed={speed}")
+        
+        SPEED_TO_CM_PER_SEC = 0.7  # Needs calibration
+        move_time = distance_cm / (speed * SPEED_TO_CM_PER_SEC)
+        self.get_logger().info(f"Calculated move time: {move_time:.2f} seconds")
+        elapsed_time = 0
+        
+        while elapsed_time < move_time:
+            self.car.backward(speed)
+            sleep(0.1)
+            elapsed_time += 0.1
+            if elapsed_time % 1 < 0.1:
+                self.get_logger().info(f"Moving... elapsed={elapsed_time:.1f}s")
+        
+        self.get_logger().info("Movement complete, stopping")
+        self.car.stop()
+
+    def turn_left(self):
+        self.get_logger().info("Starting left turn sequence")
+        self.car.set_dir_servo_angle(-30)
+        self.get_logger().info("Setting wheel angle to -30°")
+        self.move_forward_this_way(20)
+        self.car.set_dir_servo_angle(0)
+        self.get_logger().info("Straightening wheels")
+        self.move_forward_this_way(20)
+        self.get_logger().info("Left turn complete")
+
+    def turn_right(self):
+        self.get_logger().info("Starting right turn sequence")
+        self.car.set_dir_servo_angle(30)
+        self.get_logger().info("Setting wheel angle to 30°")
+        self.move_forward_this_way(20)
+        self.car.set_dir_servo_angle(0)
+        self.get_logger().info("Straightening wheels")
+        self.move_forward_this_way(20)
+        self.get_logger().info("Right turn complete")
+
+    def stop(self):
+        self.get_logger().info("Stopping robot")
+        self.car.stop()
+
+    def turn_left_in_place(self):
+        self.get_logger().info("Turning left in place")
+        self.car.set_dir_servo_angle(-30)
+
+    def turn_right_in_place(self):
+        self.get_logger().info("Turning right in place")
+        self.car.set_dir_servo_angle(30)
+
+    # @with_obstacle_check
+    # def come_here(car, check_distance=None):
+    #     car.Vilib.face_detect_switch(True)
+    #     speed = 15
+    #     dir_angle = 0
+    #     x_angle = 0
+    #     y_angle = 0
+        
+    #     while True:
+    #         status = check_distance()
+    #         if status == "danger":
+    #             self.get_logger().info("Obstacle too close! Backing up.")
+    #             break
+    #         elif status == "caution":
+    #             self.get_logger().info("Obstacle detected! Adjusting course.")
+                
+    #         if car.Vilib.detect_obj_parameter['face'] != 0:
+    #             coordinate_x = Vilib.detect_obj_parameter['face_x']
+    #             coordinate_y = Vilib.detect_obj_parameter['face_y']
+                
+    #             x_angle += (coordinate_x*10/640)-5
+    #             x_angle = clamp_number(x_angle,-35,35)
+    #             car.set_cam_pan_angle(x_angle)
+
+    #             y_angle -= (coordinate_y*10/480)-5
+    #             y_angle = clamp_number(y_angle,-35,35)
+    #             car.set_cam_tilt_angle(y_angle)
+
+    #             if dir_angle > x_angle:
+    #                 dir_angle -= 1
+    #             elif dir_angle < x_angle:
+    #                 dir_angle += 1
+    #             car.set_dir_servo_angle(x_angle)
+    #             move_forward_this_way(car,10,40)
+    #             sleep(0.05)
+    #         else:
+    #             move_forward_this_way(car,5,5)
+    #             Vilib.face_detect_switch(False)
+    #             sleep(0.05)
+
+    def clamp_number(self, num, a, b):
+        return max(min(num, max(a, b)), min(a, b))
+
+    def wave_hands(self):
+        self.get_logger().info("Waving hands")
+        self.car.reset()
+        self.car.set_cam_tilt_angle(20)
+        for _ in range(2):
+            self.car.set_dir_servo_angle(-25)
+            sleep(.1)
+            self.car.set_dir_servo_angle(25)
+            sleep(.1)
+        self.car.set_dir_servo_angle(0)
+
+    def resist(self):
+        self.get_logger().info("Resisting")
+        self.car.reset()
+        self.car.set_cam_tilt_angle(10)
+        for _ in range(3):
+            self.car.set_dir_servo_angle(-15)
+            self.car.set_cam_pan_angle(15)
+            sleep(.1)
+            self.car.set_dir_servo_angle(15)
+            self.car.set_cam_pan_angle(-15)
+            sleep(.1)
+        self.car.stop()
+        self.car.set_dir_servo_angle(0)
+        self.car.set_cam_pan_angle(0)
+
+    def act_cute(self):
+        self.get_logger().info("Acting cute")
+        self.car.reset()
+        self.car.set_cam_tilt_angle(-20)
+        for i in range(15):
+            self.car.forward(5)
+            sleep(0.02)
+            self.car.backward(5)
+            sleep(0.02)
+        self.car.set_cam_tilt_angle(0)
+        self.car.stop()
+
+    def rub_hands(self):
+        self.get_logger().info("Rubbing hands")
+        self.car.reset()
+        for i in range(5):
+            self.car.set_dir_servo_angle(-6)
+            sleep(.5)
+            self.car.set_dir_servo_angle(6)
+            sleep(.5)
+        self.car.reset()
+
+    def think(self):
+        self.get_logger().info("Thinking")
+        self.car.reset()
+        for i in range(11):
+            self.car.set_cam_pan_angle(i*3)
+            self.car.set_cam_tilt_angle(-i*2)
+            self.car.set_dir_servo_angle(i*2)
+            sleep(.05)
+        sleep(1)
+        self.car.set_cam_pan_angle(15)
+        self.car.set_cam_tilt_angle(-10)
+        self.car.set_dir_servo_angle(10)
+        sleep(.1)
+        self.car.reset()
+
+    def keep_think(self):
+        self.get_logger().info("Keep thinking")
+        self.car.reset()
+        for i in range(11):
+            self.car.set_cam_pan_angle(i*3)
+            self.car.set_cam_tilt_angle(-i*2)
+            self.car.set_dir_servo_angle(i*2)
+            sleep(.05)
+
+    def shake_head(self):
+        self.get_logger().info("Shaking head")
+        self.car.stop()
+        self.car.set_cam_pan_angle(0)
+        self.car.set_cam_pan_angle(60)
+        sleep(.2)
+        self.car.set_cam_pan_angle(-50)
+        sleep(.1)
+        self.car.set_cam_pan_angle(40)
+        sleep(.1)
+        self.car.set_cam_pan_angle(-30)
+        sleep(.1)
+        self.car.set_cam_pan_angle(20)
+        sleep(.1)
+        self.car.set_cam_pan_angle(-10)
+        sleep(.1)
+        self.car.set_cam_pan_angle(10)
+        sleep(.1)
+        self.car.set_cam_pan_angle(-5)
+        sleep(.1)
+        self.car.set_cam_pan_angle(0)
+
+    def nod(self):
+        self.get_logger().info("Nodding")
+        self.car.reset()
+        self.car.set_cam_tilt_angle(0)
+        self.car.set_cam_tilt_angle(5)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-30)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(5)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-30)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(0)
+
+
+    def depressed(self):
+        self.get_logger().info("Acting depressed")
+        self.car.reset()
+        self.car.set_cam_tilt_angle(0)
+        self.car.set_cam_tilt_angle(20)
+        sleep(.22)
+        self.car.set_cam_tilt_angle(-22)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(10)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-22)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(0)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-22)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-10)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-22)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-15)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-22)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-19)
+        sleep(.1)
+        self.car.set_cam_tilt_angle(-22)
+        sleep(.1)
+        sleep(1.5)
+        self.car.reset()
+
+    def twist_body(self):
+        self.get_logger().info("Twisting body")
+        self.car.reset()
+        for i in range(3):
+            self.car.set_motor_speed(1, 20)
+            self.car.set_motor_speed(2, 20)
+            self.car.set_cam_pan_angle(-20)
+            self.car.set_dir_servo_angle(-10)
+            sleep(.1)
+            self.car.set_motor_speed(1, 0)
+            self.car.set_motor_speed(2, 0)
+            self.car.set_cam_pan_angle(0)
+            self.car.set_dir_servo_angle(0)
+            sleep(.1)
+            self.car.set_motor_speed(1, -20)
+            self.car.set_motor_speed(2, -20)
+            self.car.set_cam_pan_angle(20)
+            self.car.set_dir_servo_angle(10)
+            sleep(.1)
+            self.car.set_motor_speed(1, 0)
+            self.car.set_motor_speed(2, 0)
+            self.car.set_cam_pan_angle(0)
+            self.car.set_dir_servo_angle(0)
+            sleep(.1)
+
+    def celebrate(self):
+        self.get_logger().info("Celebrating")
+        self.car.reset()
+        self.car.set_cam_tilt_angle(20)
+
+        self.car.set_dir_servo_angle(30)
+        self.car.set_cam_pan_angle(60)
+        sleep(.3)
+        self.car.set_dir_servo_angle(10)
+        self.car.set_cam_pan_angle(30)
+        sleep(.1)
+        self.car.set_dir_servo_angle(30)
+        self.car.set_cam_pan_angle(60)
+        sleep(.3)
+        self.car.set_dir_servo_angle(0)
+        self.car.set_cam_pan_angle(0)
+        sleep(.2)
+
+        self.car.set_dir_servo_angle(-30)
+        self.car.set_cam_pan_angle(-60)
+        sleep(.3)
+        self.car.set_dir_servo_angle(-10)
+        self.car.set_cam_pan_angle(-30)
+        sleep(.1)
+        self.car.set_dir_servo_angle(-30)
+        self.car.set_cam_pan_angle(-60)
+        sleep(.3)
+        self.car.set_dir_servo_angle(0)
+        self.car.set_cam_pan_angle(0)
+        sleep(.2)
+
+    def honk(self):
+        self.get_logger().info("Honking horn")
+        try:
+            if hasattr(self.car, 'music'):
+                self.car.music.sound_play("../sounds/car-double-horn.wav", 100)
+                while self.car.music.pygame.mixer.music.get_busy():
+                    time.sleep(0.1)
+            else:
+                self.get_logger().warn("Warning: Car does not have audio capabilities")
+        except Exception as e:
+            self.get_logger().info(f"Error playing honk sound: {e}")
+
+    def start_engine(self):
+        self.get_logger().info("Starting engine")
+        try:
+            if hasattr(self.car, 'music'):
+                self.car.music.sound_play("../sounds/car-start-engine.wav", 50)
+                while self.car.music.pygame.mixer.music.get_busy():
+                    time.sleep(0.1)
+            else:
+                self.get_logger().warn("Warning: Car does not have audio capabilities")
+        except Exception as e:
+            self.get_logger().info(f"Error playing engine sound: {e}")
+
+    # Actions dictionary removed - methods are now instance methods called directly
+
+
+
+
+
+
+
+
+
+

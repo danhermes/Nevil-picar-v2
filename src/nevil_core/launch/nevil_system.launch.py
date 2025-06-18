@@ -15,7 +15,7 @@ def generate_launch_description():
     # Launch arguments
     system_mode_arg = DeclareLaunchArgument(
         'system_mode',
-        default_value='standby',
+        default_value='active',
         description='Initial system mode (standby, manual, autonomous)'
     )
     
@@ -67,7 +67,8 @@ def generate_launch_description():
         ]),
         launch_arguments={
             'navigation_mode': LaunchConfiguration('navigation_mode'),
-            'max_speed': LaunchConfiguration('max_speed')
+            'max_speed': LaunchConfiguration('max_speed'),
+            'use_hardware_bridge': 'true'
         }.items()
     )
     
@@ -85,6 +86,22 @@ def generate_launch_description():
         }.items()
     )
     
+    # Real-time motor control launch with hardware bridge
+    realtime_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare('nevil_realtime'),
+                'launch',
+                'nevil_realtime.launch.py'
+            ])
+        ]),
+        launch_arguments={
+            'enable_rt': 'true',
+            'hardware_backend': 'auto',
+            'use_sim': 'false'
+        }.items()
+    )
+    
     # Return launch description
     return LaunchDescription([
         # Launch arguments
@@ -97,5 +114,6 @@ def generate_launch_description():
         # Launch files
         core_launch,
         navigation_launch,
-        perception_launch
+        perception_launch,
+        realtime_launch
     ])

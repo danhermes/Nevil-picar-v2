@@ -278,12 +278,12 @@ def turn_right_in_place(car):
     return car.api.set_dir_servo_angle(30)
 
 
-@with_obstacle_check
-def come_here(car, check_distance=None):
-    """Make the robot come to a detected face."""
-    # This is a complex behavior that uses face detection
-    # For now, we'll just call the API's perform_behavior method
-    return car.api.perform_behavior('come_here')
+# @with_obstacle_check
+# def come_here(car, check_distance=None):
+#     """Make the robot come to a detected face."""
+#     # This is a complex behavior that uses face detection
+#     # For now, we'll just call the API's perform_behavior method
+#     return car.api.perform_behavior('come_here')
 
 
 def clamp_number(num, a, b):
@@ -365,7 +365,7 @@ actions_dict = {
     "stop": stop,
     "twist left": turn_left_in_place,
     "twist right": turn_right_in_place,
-    "come here": come_here,
+    #"come here": come_here,
     "shake head": shake_head,
     "nod": nod,
     "wave hands": wave_hands,

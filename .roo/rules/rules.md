@@ -2,6 +2,10 @@
 
 Core Philosophy
 
+0. Verify the goal with the User
+
+Before you touch any code, ask: "You want me to [specific action], using [existing components], to prove [specific outcome]. Correct?"
+
 1. Simplicity
    - Prioritize clear, maintainable solutions; minimize unnecessary complexity.
 

@@ -14,7 +14,7 @@ def generate_launch_description():
     # Launch arguments
     system_mode_arg = DeclareLaunchArgument(
         'system_mode',
-        default_value='standby',
+        default_value='active',
         description='Initial system mode (standby, manual, autonomous)'
     )
     

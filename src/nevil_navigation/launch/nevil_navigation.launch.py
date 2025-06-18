@@ -24,23 +24,17 @@ def generate_launch_description():
         description='Maximum linear speed in m/s'
     )
     
-    # Nodes
-    motion_control_node = Node(
-        package='nevil_navigation',
-        executable='motion_control_node',
-        name='motion_control',
-        output='screen',
-        parameters=[
-            {'max_linear_speed': LaunchConfiguration('max_speed')},
-            {'max_angular_speed': 1.0},
-            {'safety_enabled': True}
-        ]
-    )
+    # use_hardware_bridge_arg = DeclareLaunchArgument(
+    #     'use_hardware_bridge',
+    #     default_value='true',
+    #     description='Enable hardware bridge for actual movement'
+    # )
     
+    # Navigation node (Python)
     navigation_node = Node(
         package='nevil_navigation',
         executable='navigation_node.py',
-        name='navigation',
+        name='navigation_node',
         output='screen',
         parameters=[
             {'navigation_mode': LaunchConfiguration('navigation_mode')},
@@ -52,6 +46,6 @@ def generate_launch_description():
     return LaunchDescription([
         navigation_mode_arg,
         max_speed_arg,
-        motion_control_node,
+        #use_hardware_bridge_arg,
         navigation_node
     ])

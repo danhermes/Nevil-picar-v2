@@ -19,6 +19,11 @@ def launch_with_priority(context, *args, **kwargs):
     isolated_core = LaunchConfiguration('isolated_core').perform(context)
     isolated_core = int(isolated_core) if isolated_core.isdigit() else -1
     
+    # Get hardware backend configuration
+    hardware_backend = LaunchConfiguration('hardware_backend').perform(context)
+    use_sim = LaunchConfiguration('use_sim').perform(context)
+    use_sim = use_sim.lower() in ['true', 't', 'yes', 'y', '1']
+    
     # Define nodes with their priorities
     nodes = [
         {
@@ -44,15 +49,26 @@ def launch_with_priority(context, *args, **kwargs):
                 {'update_rate': 50.0},
                 {'filter_window_size': 5}
             ]
-        },
-        {
-            'package': 'nevil_realtime',
-            'executable': 'rt_config_manager',
-            'name': 'rt_config_manager',
-            'priority': 40,
-            'cpu': None,
-            'parameters': []
-        }
+        }#,
+        # {
+        #     'package': 'nevil_realtime',
+        #     'executable': 'rt_config_manager',
+        #     'name': 'rt_config_manager',
+        #     'priority': 40,
+        #     'cpu': None,
+        #     'parameters': []
+        # },
+        # {
+        #     'package': 'nevil_realtime',
+        #     'executable': 'hardware_bridge_node.py',
+        #     'name': 'hardware_bridge',
+        #     'priority': 80,
+        #     'cpu': isolated_core if isolated_core >= 0 else None,
+        #     'parameters': [
+        #         {'hardware_backend': hardware_backend},
+        #         {'use_sim': use_sim}
+        #     ]
+        # }
     ]
     
     # Create launch actions
@@ -127,6 +143,18 @@ def generate_launch_description():
             'isolated_core',
             default_value='-1',
             description='CPU core to isolate for real-time tasks (-1 to disable)'
+        ),
+        
+        DeclareLaunchArgument(
+            'hardware_backend',
+            default_value='auto',
+            description='Hardware backend to use (auto, physical, simulation)'
+        ),
+        
+        DeclareLaunchArgument(
+            'use_sim',
+            default_value='false',
+            description='Force simulation mode'
         ),
         
         # Launch nodes with real-time priority

@@ -6,7 +6,7 @@ import json
 import threading
 import queue
 import numpy as np
-#import speech_recognition as sr
+import speech_recognition as sr
 import rclpy
 from rclpy.node import Node
 from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -53,16 +53,30 @@ class SpeechRecognitionNode(Node):
         self.declare_parameter('use_online_recognition', True)
         self.declare_parameter('online_api', get_env_var('SPEECH_RECOGNITION_API', 'auto'))  # 'google', 'whisper', 'auto'
         self.declare_parameter('language', get_env_var('SPEECH_RECOGNITION_LANGUAGE', 'en-US'))
+        
+        # Speech recognition parameters from v1.0 with detailed comments
         self.declare_parameter('energy_threshold', int(get_env_var('SPEECH_RECOGNITION_ENERGY_THRESHOLD', 300)))
-        self.declare_parameter('pause_threshold', float(get_env_var('SPEECH_RECOGNITION_PAUSE_THRESHOLD', 0.8)))
+        self.declare_parameter('dynamic_energy_adjustment_damping', float(get_env_var('SPEECH_RECOGNITION_DAMPING', 0.1)))
+        self.declare_parameter('dynamic_energy_ratio', float(get_env_var('SPEECH_RECOGNITION_RATIO', 1.2)))
+        self.declare_parameter('pause_threshold', float(get_env_var('SPEECH_RECOGNITION_PAUSE_THRESHOLD', 0.5)))
+        self.declare_parameter('operation_timeout', int(get_env_var('SPEECH_RECOGNITION_TIMEOUT', 18)))
+        self.declare_parameter('phrase_threshold', float(get_env_var('SPEECH_RECOGNITION_PHRASE_THRESHOLD', 0.5)))
+        self.declare_parameter('non_speaking_duration', float(get_env_var('SPEECH_RECOGNITION_NON_SPEAKING', 0.5)))
         self.declare_parameter('dynamic_energy_threshold', get_env_var('SPEECH_RECOGNITION_DYNAMIC_ENERGY', 'true').lower() in ['true', '1', 'yes'])
         
         # Get parameters
         self.use_online = self.get_parameter('use_online_recognition').value
         self.online_api = self.get_parameter('online_api').value
         self.language = self.get_parameter('language').value
-        self.energy_threshold = self.get_parameter('energy_threshold').value
-        self.pause_threshold = self.get_parameter('pause_threshold').value
+        
+        # Speech recognition parameters from v1.0 with detailed explanations
+        self.energy_threshold = self.get_parameter('energy_threshold').value  # Minimum audio energy level required to detect speech. Lower values (50-4000 range) increase sensitivity to quiet speech but may pick up more background noise
+        self.dynamic_energy_adjustment_damping = self.get_parameter('dynamic_energy_adjustment_damping').value  # Controls adaptation rate of energy threshold to ambient noise (0-1 range). 0 means instant adaptation, 1 means no adaptation. Lower values better for varying noise environments
+        self.dynamic_energy_ratio = self.get_parameter('dynamic_energy_ratio').value  # How much louder speech must be vs ambient noise. At 1.2, speech needs to be 20% louder than background. Higher values reduce false detections but require clearer speech
+        self.pause_threshold = self.get_parameter('pause_threshold').value  # Duration of silence in seconds needed to mark end of phrase. 0.5s balances responsiveness with natural speech pauses
+        self.operation_timeout = self.get_parameter('operation_timeout').value  # Maximum seconds to wait for speech input before timeout. Balances giving users enough time while preventing indefinite waits
+        self.phrase_threshold = self.get_parameter('phrase_threshold').value  # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
+        self.non_speaking_duration = self.get_parameter('non_speaking_duration').value  # seconds of non-speaking audio to keep on both sides of the recording
         self.dynamic_energy = self.get_parameter('dynamic_energy_threshold').value
         
         # Note: OpenAI API key is not needed for Whisper (offline speech-to-text)
@@ -133,10 +147,15 @@ class SpeechRecognitionNode(Node):
         # Initialize audio hardware interface
         self.audio_hw = AudioHardwareInterface(self)
         
-        # Configure speech recognition parameters
+        # Configure speech recognition parameters with v1.0 detailed settings
         self.audio_hw.set_speech_recognition_parameters(
             energy_threshold=self.energy_threshold,
+            dynamic_energy_adjustment_damping=self.dynamic_energy_adjustment_damping,
+            dynamic_energy_ratio=self.dynamic_energy_ratio,
             pause_threshold=self.pause_threshold,
+            operation_timeout=self.operation_timeout,
+            phrase_threshold=self.phrase_threshold,
+            non_speaking_duration=self.non_speaking_duration,
             dynamic_energy=self.dynamic_energy
         )
         

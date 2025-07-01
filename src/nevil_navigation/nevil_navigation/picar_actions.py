@@ -9,16 +9,57 @@ import time
 #    nod, wave hands, resist, act cute, rub hands, think, twist body, celebrate, depressed, keep think
 #
 # Sounds: honk, start engine
-
+ 
 class PicarActions(Node):
-    def __init__(self):
+    def __init__(self, car_instance=None):
         super().__init__('picar_actions')
         self.get_logger().info(f"Starting PicarActions().")
+        
+        # Use provided car instance or initialize our own
+        if car_instance is not None:
+            self.car = car_instance
+            self.speed = 30
+            self.get_logger().info("Using provided car instance")
+        else:
+            self.get_logger().fatal("No PicarX available.")
+    #         # Initialize car hardware like v1.0
+    #         self.car = None
+    #         self.speed = 30
+    #         self.initialize_car()
+    
+    # def initialize_car(self):
+    #     """Initialize PiCar hardware."""
+    #     try:
+    #         from .picarx import Picarx
+    #         from robot_hat import reset_mcu
+            
+    #         # Reset MCU
+    #         reset_mcu()
+    #         time.sleep(0.1)
+            
+    #         # Create car instance
+    #         self.car = Picarx()
+    #         self.car.SafeDistance = 30
+    #         self.car.DangerDistance = 15
+    #         self.car.speed = 30
+    #         self.speed = 30
+            
+    #         time.sleep(1)
+    #         self.get_logger().info("PiCar hardware initialized successfully")
+            
+    #     except Exception as e:
+    #         self.car = None
+    #         self.get_logger().warn(f"Failed to initialize PiCar hardware: {e}")
+    #         self.get_logger().info("Running in simulation mode without hardware")
 
     # Removed obstacle check decorator - will be reimplemented when hardware integration is added
 
     def move_forward_this_way(self, distance_cm=20, speed=None):
         """Move forward a specific distance at given speed"""
+        if self.car is None:
+            self.get_logger().warning("Cannot move forward: No car instance available")
+            return
+            
         distance_cm = distance_cm * 3 #calibrate distance
         if speed is None:
             speed = self.speed
@@ -54,6 +95,10 @@ class PicarActions(Node):
 
     def move_backward_this_way(self, distance_cm=20, speed=None):
         """Move backward a specific distance at given speed"""
+        if self.car is None:
+            self.get_logger().warning("Cannot move backward: No car instance available")
+            return
+            
         if speed is None:
             speed = self.speed
         self.get_logger().info(f"Starting backward movement: distance={distance_cm}cm, speed={speed}")
@@ -74,6 +119,9 @@ class PicarActions(Node):
         self.car.stop()
 
     def turn_left(self):
+        if self.car is None:
+            self.get_logger().warning("Cannot turn left: No car instance available")
+            return
         self.get_logger().info("Starting left turn sequence")
         self.car.set_dir_servo_angle(-30)
         self.get_logger().info("Setting wheel angle to -30°")
@@ -84,6 +132,9 @@ class PicarActions(Node):
         self.get_logger().info("Left turn complete")
 
     def turn_right(self):
+        if self.car is None:
+            self.get_logger().warning("Cannot turn right: No car instance available")
+            return
         self.get_logger().info("Starting right turn sequence")
         self.car.set_dir_servo_angle(30)
         self.get_logger().info("Setting wheel angle to 30°")
@@ -94,14 +145,23 @@ class PicarActions(Node):
         self.get_logger().info("Right turn complete")
 
     def stop(self):
+        if self.car is None:
+            self.get_logger().warning("Cannot stop: No car instance available")
+            return
         self.get_logger().info("Stopping robot")
         self.car.stop()
 
     def turn_left_in_place(self):
+        if self.car is None:
+            self.get_logger().warning("Cannot turn left in place: No car instance available")
+            return
         self.get_logger().info("Turning left in place")
         self.car.set_dir_servo_angle(-30)
 
     def turn_right_in_place(self):
+        if self.car is None:
+            self.get_logger().warning("Cannot turn right in place: No car instance available")
+            return
         self.get_logger().info("Turning right in place")
         self.car.set_dir_servo_angle(30)
 
@@ -221,6 +281,9 @@ class PicarActions(Node):
             sleep(.05)
 
     def shake_head(self):
+        if self.car is None:
+            self.get_logger().warning("Cannot shake head: No car instance available")
+            return
         self.get_logger().info("Shaking head")
         self.car.stop()
         self.car.set_cam_pan_angle(0)
@@ -243,6 +306,9 @@ class PicarActions(Node):
         self.car.set_cam_pan_angle(0)
 
     def nod(self):
+        if self.car is None:
+            self.get_logger().warning("Cannot nod: No car instance available")
+            return
         self.get_logger().info("Nodding")
         self.car.reset()
         self.car.set_cam_tilt_angle(0)

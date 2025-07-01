@@ -2,6 +2,7 @@
 
 import sys
 import os
+import time
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist, PoseStamped
@@ -12,13 +13,40 @@ import json
 import math
 from .picar_actions import PicarActions
 
+# Fix the robot_hat.utils.reset_mcu issue before importing Picarx
+try:
+    import robot_hat.utils
+    from robot_hat import reset_mcu
+    # Monkey patch the missing reset_mcu function with timeout protection
+    if not hasattr(robot_hat.utils, 'reset_mcu'):
+        def safe_reset_mcu():
+            import signal
+            import time
+            def timeout_handler(signum, frame):
+                raise TimeoutError("reset_mcu() timed out")
+            
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(3)  # 3 second timeout
+            try:
+                reset_mcu()
+                signal.alarm(0)  # Cancel timeout
+                time.sleep(0.1)
+            except TimeoutError:
+                signal.alarm(0)  # Cancel timeout
+                print("reset_mcu() timed out - continuing anyway")
+            except Exception as e:
+                signal.alarm(0)  # Cancel timeout
+                print(f"reset_mcu() failed: {e}")
+        
+        robot_hat.utils.reset_mcu = safe_reset_mcu
+except ImportError:
+    pass
+
+# Import Picarx with fallback
 try:
     from .picarx import Picarx
-    HARDWARE_AVAILABLE = True
-    print("PiCar-X hardware imported successfully in navigation_node")
-except ImportError as e:
-    HARDWARE_AVAILABLE = False
-    print(f"PiCar-X hardware not available in navigation_node - running in simulation mode: {e}")
+except ImportError:
+    Picarx = None
 
 # Import AI command message
 try:
@@ -41,7 +69,49 @@ class NavigationNode(Node):
     
     def __init__(self):
         super().__init__('navigation_node')
+        try:
+            HARDWARE_AVAILABLE = True
+            from .picarx import Picarx
+            self.get_logger().warn("PiCar-X hardware imported successfully in navigation_node")
+        except ImportError as e:
+            HARDWARE_AVAILABLE = False
+            self.get_logger().warn(f"PiCar-X hardware not available in navigation_node - running in simulation mode: {e}")
+
+        # Initialize PiCar hardware exactly like v1.0
+        try:
+            self.get_logger().warn("Initing Picar everything.")
+            # Check if we're on a Raspberry Pi or have GPIO access
+            import platform
+            if platform.machine() not in ['armv7l', 'aarch64'] and not os.path.exists('/dev/gpiomem'):
+                raise RuntimeError("Not running on Raspberry Pi hardware")
+            
+            # First try to cleanup any existing resources like v1.0
+            self.get_logger().info("Initing robot_hat")
+            try:
+                from robot_hat import reset_mcu
+                self.get_logger().info("Calling reset_mcu() like v1.0")
+                reset_mcu()
+                time.sleep(0.1)
+                self.get_logger().info("reset_mcu() completed successfully")
+            except Exception as e:
+                self.get_logger().warn(f"reset_mcu() failed: {e} - continuing anyway")
+            
+            self.get_logger().info("Initing Picarx()")
+            self.car = Picarx()
+            # Add safety distance attributes like v1.0
+            self.car.SafeDistance = 30  # 30cm safe distance
+            self.car.DangerDistance = 15  # 15cm danger distance
+            self.speed = 30  # Set default speed
+            self.DEFAULT_HEAD_TILT = 20
+            time.sleep(1)  # Add sleep like v1.0
+            self.get_logger().info("PiCar hardware initialized successfully")
+        except Exception as e:
+            self.car = None
+            self.get_logger().warn(f"Failed to initialize PiCar hardware: {e}")
+            self.get_logger().info("Running in simulation mode without hardware")
         
+        # Hardware initialization already completed above - duplicate removed
+
         # QoS profile for navigation messages
         nav_qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
@@ -102,19 +172,6 @@ class NavigationNode(Node):
         self.current_path = None
         self.system_mode = 'active'  # Start in active mode, will be updated by system manager
         self.navigation_active = False
-        
-        #def init_car(self):
-                # Initialize PiCar hardware
-        if HARDWARE_AVAILABLE:
-            self.car = Picarx()
-            self.car.SafeDistance = 30
-            self.car.DangerDistance = 15
-            self.speed = 30
-            self.DEFAULT_HEAD_TILT = 20
-            self.get_logger().info("PiCar hardware initialized")
-        else:
-            self.car = None
-            self.get_logger().warn("Running without PiCar hardware")
 
         self.get_logger().info('Navigation Node initialized')
         
@@ -180,9 +237,14 @@ class NavigationNode(Node):
         """Execute a specific action using PicarActions"""
         self.get_logger().info(f'Executing PicarActions action type: {action_type}.')
         
+        # Check if hardware is available
+        if self.car is None:
+            self.get_logger().warning(f'Cannot execute action {action_type}: Hardware not available (simulation mode)')
+            return
+        
         # Initialize PicarActions if not already done
         if not hasattr(self, 'picar_actions'):
-            self.picar_actions = PicarActions()
+            self.picar_actions = PicarActions(car_instance=self.car)
         
         # Actions dictionary mapping command names to PicarActions methods
         actions_dict = {
@@ -218,10 +280,10 @@ class NavigationNode(Node):
                 if action_type in ["forward", "backward"]:
                     distance = action_data.get('distance_cm', 20)
                     speed = action_data.get('speed', None)
-                    actions_dict[action_type](self.car,distance, speed)
+                    actions_dict[action_type](distance, speed)
                 else:
                     # Actions that don't need parameters
-                    actions_dict[action_type](self.car)
+                    actions_dict[action_type]()
                     
             except Exception as e:
                 self.get_logger().error(f'Error executing action {action_type}: {e}')
@@ -235,6 +297,14 @@ class NavigationNode(Node):
         cmd.linear.x = 0.0
         cmd.angular.z = 0.0
         self.cmd_vel_publisher.publish(cmd)
+        
+        # Also stop hardware if available
+        if self.car is not None:
+            try:
+                self.car.stop()
+            except Exception as e:
+                self.get_logger().warning(f'Failed to stop hardware: {e}')
+        
         self.get_logger().info('Robot stopped')
 
 

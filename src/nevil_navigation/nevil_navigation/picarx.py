@@ -1,6 +1,21 @@
-from robot_hat import Pin, ADC, PWM, Servo #,fileDB
-from robot_hat import Ultrasonic, utils #Grayscale_Module,
-from robot_hat import reset_mcu
+from robot_hat import Pin, ADC, PWM, Servo, utils
+try:
+    from robot_hat import fileDB
+except ImportError:
+    # fileDB not available in this version of robot_hat
+    fileDB = None
+
+try:
+    from robot_hat import Grayscale_Module
+except ImportError:
+    # Grayscale_Module not available in this version of robot_hat
+    Grayscale_Module = None
+
+try:
+    from robot_hat import Ultrasonic
+except ImportError:
+    # Ultrasonic not available in this version of robot_hat
+    Ultrasonic = None
 import time
 import os
 
@@ -42,11 +57,22 @@ class Picarx(object):
                 ):
 
         # reset robot_hat
-        reset_mcu()
+        utils.reset_mcu()
         time.sleep(0.2)
 
         # --------- config_flie ---------
-        self.config_flie = "" #fileDB(config, 777, os.getlogin())
+        if fileDB is not None:
+            self.config_flie = fileDB(config, 777, os.getlogin())
+        else:
+            # Create a simple fallback config object
+            class FallbackConfig:
+                def __init__(self):
+                    self._data = {}
+                def get(self, key, default_value=None):
+                    return self._data.get(key, default_value)
+                def set(self, key, value):
+                    self._data[key] = value
+            self.config_flie = FallbackConfig()
 
         # --------- servos init ---------
         self.cam_pan = Servo(servo_pins[0])
@@ -79,15 +105,30 @@ class Picarx(object):
             pin.prescaler(self.PRESCALER)
 
         # --------- grayscale module init ---------
-        adc0, adc1, adc2 = [ADC(pin) for pin in grayscale_pins]
-        #self.grayscale = Grayscale_Module(adc0, adc1, adc2, reference=None)
-        # get reference
-        self.line_reference = self.config_flie.get("line_reference", default_value=str(self.DEFAULT_LINE_REF))
-        self.line_reference = [float(i) for i in self.line_reference.strip().strip('[]').split(',')]
-        self.cliff_reference = self.config_flie.get("cliff_reference", default_value=str(self.DEFAULT_CLIFF_REF))
-        self.cliff_reference = [float(i) for i in self.cliff_reference.strip().strip('[]').split(',')]
-        # transfer reference
-        #self.grayscale.reference(self.line_reference)
+        if Grayscale_Module is not None:
+            adc0, adc1, adc2 = [ADC(pin) for pin in grayscale_pins]
+            self.grayscale = Grayscale_Module(adc0, adc1, adc2, reference=None)
+            # get reference
+            self.line_reference = self.config_flie.get("line_reference", default_value=str(self.DEFAULT_LINE_REF))
+            self.line_reference = [float(i) for i in self.line_reference.strip().strip('[]').split(',')]
+            self.cliff_reference = self.config_flie.get("cliff_reference", default_value=str(self.DEFAULT_CLIFF_REF))
+            self.cliff_reference = [float(i) for i in self.cliff_reference.strip().strip('[]').split(',')]
+            # transfer reference
+            self.grayscale.reference(self.line_reference)
+        else:
+            # Create fallback grayscale object
+            class FallbackGrayscale:
+                def __init__(self):
+                    pass
+                def reference(self, ref):
+                    pass
+                def read(self):
+                    return [500, 500, 500]  # Default values
+                def read_status(self, values):
+                    return 0  # Default status
+            self.grayscale = FallbackGrayscale()
+            self.line_reference = self.DEFAULT_LINE_REF
+            self.cliff_reference = self.DEFAULT_CLIFF_REF
 
         # --------- ultrasonic init ---------
         trig, echo= ultrasonic_pins

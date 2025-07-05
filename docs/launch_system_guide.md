@@ -183,6 +183,35 @@ ps aux | grep python | grep nevil
 
 ## System Monitoring
 
+### Navigation Monitor (Recommended)
+
+The Navigation Monitor provides comprehensive real-time monitoring with critical error detection:
+
+```bash
+# Start navigation monitoring dashboard
+./src/nevil_navigation/scripts/start_monitor.sh
+
+# With logging for analysis
+./src/nevil_navigation/scripts/start_monitor.sh --log-file /tmp/nav_monitor.log
+
+# Custom refresh rate (faster updates)
+./src/nevil_navigation/scripts/start_monitor.sh --refresh-rate 50
+```
+
+#### Key Features
+- **Real-time Topic Monitoring**: Live updates for `/cmd_vel`, `/goal_pose`, `/system_mode`, `/nevil/action_command`, `/planned_path`
+- **Critical Error Detection**: Immediate alerts for crashes, segfaults, and fatal errors
+- **Node Health Monitoring**: Tracks critical nodes (`navigation_node`, `ai_interface_node`, `dialog_manager_node`, etc.)
+- **System Resource Alerts**: Memory (>90%) and CPU (>95%) warnings
+- **Interactive Controls**: Reset counters (r), pause/resume (p), clean shutdown (Ctrl+C)
+
+#### Alert Levels
+- 💀 **FATAL**: System crashes, segfaults - immediate attention required
+- 🔴 **ERROR**: Failed operations, missing nodes - investigation needed
+- 🟡 **WARNING**: Performance issues, timeouts - monitor closely
+
+For detailed documentation, see [Navigation Monitor Documentation](../src/nevil_navigation/scripts/README_navigation_monitor.md).
+
 ### Real-time Status Monitoring
 
 #### Check Running Nodes

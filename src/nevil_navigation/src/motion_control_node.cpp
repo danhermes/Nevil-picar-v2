@@ -35,8 +35,8 @@ public:
     hardware_client_ = this->create_client<nevil_interfaces::srv::HardwareCommand>("hardware_command");
     
     // Create timers
-    timer_ = this->create_wall_timer(
-      100ms, std::bind(&MotionControlNode::timer_callback, this));
+    //timer_ = this->create_wall_timer(
+    //  100ms, std::bind(&MotionControlNode::timer_callback, this));
     
     RCLCPP_INFO(this->get_logger(), "Motion Control Node initialized");
     

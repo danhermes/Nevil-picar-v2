@@ -12,6 +12,12 @@ Welcome to the official documentation for Nevil-picar v2.0, a multi-threaded, re
 pkill -f "nevil"
 ```
 
+## Build Nevil (better than colcon as it copies in necessary stubs)
+### ALL
+./nevil build --cmake-clean-cache --event-handlers console_cohesion+
+### One Package
+./nevil build --packages-select nevil_navigation
+
 For detailed launch and system management instructions, see the [Launch and System Management Guide](launch_system_guide.md).
 
 ## Documentation Structure
@@ -29,6 +35,7 @@ This documentation is organized into several sections to help you understand, us
 
 ### System Operations
 - **[Launch and System Management Guide](launch_system_guide.md)** - Comprehensive guide for starting, monitoring, and shutting down the system
+- **[Navigation Monitor](../src/nevil_navigation/scripts/README_navigation_monitor.md)** - Real-time navigation monitoring and critical error detection system
 - [Build Status](build/BUILD_STATUS.md) - Current build status and known issues
 - [AI Interface Architecture](ai_interface_architecture.md) - AI system design and implementation
 

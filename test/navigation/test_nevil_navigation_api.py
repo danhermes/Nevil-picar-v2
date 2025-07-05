@@ -8,11 +8,12 @@ verifying that it works without ROS2 actions and connects properly to the hardwa
 """
 
 import sys
+import os
 import time
 import logging
 
 # Add the src directory to Python path for imports
-sys.path.insert(0, 'src')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from nevil_navigation.nevil_navigation.nevil_navigation_api.core import NevilNavigationAPI
 
@@ -187,7 +188,7 @@ def main():
         
         # Create API instance for main tests
         logger.info("Creating API instance for main tests...")
-        api = NevilNavigationAPI(use_hardware_manager=True)
+        api = NevilNavigationAPI()
         
         # Run tests
         test_basic_movements(api, logger)

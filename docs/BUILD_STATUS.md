@@ -41,6 +41,12 @@ The robot_hat audio hardware interface is now fully functional and no longer run
 - ROS2 Environment: Properly configured
 - robot_hat Library: Installed and working in nevil2env
 
+## Build Nevil (better than colcon as it copies in necessary stubs)
+### ALL
+./nevil build --cmake-clean-cache --event-handlers console_cohesion+
+### One Package
+./nevil build --packages-select nevil_navigation
+
 ### Next Steps
 1. Monitor speech synthesis node for any remaining issues
 2. Test full audio pipeline in production environment

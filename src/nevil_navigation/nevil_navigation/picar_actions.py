@@ -1,9 +1,9 @@
 import sys
 import os
 from time import sleep
+import time
 import rclpy
 from rclpy.node import Node
-import time
 
 # Actions: forward, backward, left, right, stop, twist left, twist right, come here, shake head,
 #    nod, wave hands, resist, act cute, rub hands, think, twist body, celebrate, depressed, keep think
@@ -20,6 +20,9 @@ class PicarActions(Node):
             self.car = car_instance
             self.speed = 30
             self.get_logger().info("Using provided car instance")
+            # Initialize wheels to straight position
+            self.initialize_servos()
+            # Note: servos_test() can be called manually when needed
         else:
             self.get_logger().fatal("No PicarX available.")
     #         # Initialize car hardware like v1.0
@@ -51,6 +54,45 @@ class PicarActions(Node):
     #         self.car = None
     #         self.get_logger().warn(f"Failed to initialize PiCar hardware: {e}")
     #         self.get_logger().info("Running in simulation mode without hardware")
+
+    def initialize_servos(self):
+        """Initialize servos to straight position (0 degrees)"""
+        if self.car is None:
+            self.get_logger().warning("Cannot initialize servos: No car instance available")
+            return
+       
+        self.get_logger().info("Initializing servos to 0 degrees (straight)")
+
+        self.stop() #stop motors
+        self.car.set_dir_servo_angle(0) # steering axle
+        self.car.set_cam_pan_angle(0)   # head r/l
+        self.car.set_cam_tilt_angle(0)  # head u/d
+        sleep(0.2)
+
+        # Final verification
+        self.get_logger().info("Servo initialization complete - wheels should now be straight")
+
+
+    def servos_test(self):
+        self.car.set_dir_servo_angle(-30)
+        sleep(0.5)
+        self.car.set_dir_servo_angle(30)
+        sleep(0.5)
+        self.car.set_dir_servo_angle(0)
+        sleep(0.5)
+        self.car.set_cam_pan_angle(-30)
+        sleep(0.5)
+        self.car.set_cam_pan_angle(30)
+        sleep(0.5)
+        self.car.set_cam_pan_angle(0)
+        sleep(0.5)
+        self.car.set_cam_tilt_angle(-30)
+        sleep(0.5)
+        self.car.set_cam_tilt_angle(30)
+        sleep(0.5)
+        self.car.set_cam_tilt_angle(0)
+        sleep(0.5)
+        self.car.reset()
 
     # Removed obstacle check decorator - will be reimplemented when hardware integration is added
 
@@ -157,6 +199,9 @@ class PicarActions(Node):
             return
         self.get_logger().info("Turning left in place")
         self.car.set_dir_servo_angle(-30)
+        sleep(0.5)  # Allow time for the turn
+        self.car.set_dir_servo_angle(0)  # Reset to straight
+        self.get_logger().info("Left in-place turn complete, wheels straightened")
 
     def turn_right_in_place(self):
         if self.car is None:
@@ -164,6 +209,9 @@ class PicarActions(Node):
             return
         self.get_logger().info("Turning right in place")
         self.car.set_dir_servo_angle(30)
+        sleep(0.5)  # Allow time for the turn
+        self.car.set_dir_servo_angle(0)  # Reset to straight
+        self.get_logger().info("Right in-place turn complete, wheels straightened")
 
     # @with_obstacle_check
     # def come_here(car, check_distance=None):
@@ -279,6 +327,9 @@ class PicarActions(Node):
             self.car.set_cam_tilt_angle(-i*2)
             self.car.set_dir_servo_angle(i*2)
             sleep(.05)
+        # Reset all servos to neutral position after thinking animation
+        self.car.reset()
+        self.get_logger().info("Keep thinking animation complete, servos reset")
 
     def shake_head(self):
         if self.car is None:
@@ -435,13 +486,3 @@ class PicarActions(Node):
             self.get_logger().info(f"Error playing engine sound: {e}")
 
     # Actions dictionary removed - methods are now instance methods called directly
-
-
-
-
-
-
-
-
-
-

@@ -104,6 +104,41 @@
       "labels": ["refactoring", "architecture", "voice-control"],
       "fixVersions": ["2.1.0"],
       "links": []
+    },
+    {
+      "id": "NEVIL-7",
+      "name": "Test File Organization",
+      "type": "Task",
+      "summary": "Reorganize all test files into structured /test directory",
+      "description": "All test files were scattered throughout the project root and source packages, making them difficult to find and maintain. This task involved creating a structured test directory organization and moving all test files to appropriate categories.\n\n**Completed Work:**\n\n1. **Created structured test directory:**\n   - `/test/navigation/` - Navigation and movement tests (8 files)\n   - `/test/hardware/` - Hardware interface tests (7 files)\n   - `/test/ai/` - AI, speech, and command processing tests (12 files)\n   - `/test/integration/` - System integration tests (4 files)\n   - `/test/unit/` - Unit tests and isolated components (11 files)\n   - `/test/docs/` - Testing documentation (1 file)\n\n2. **Fixed import paths and dependencies:**\n   - Updated hardcoded paths in test files to use relative paths\n   - Fixed API parameter mismatches in navigation tests\n   - Added missing import statements\n   - Updated CMakeLists.txt to remove moved test file references\n\n3. **Verified functionality:**\n   - Confirmed navigation tests work after reorganization\n   - Fixed API compatibility issues\n   - Tested import paths and module loading\n\n4. **Created comprehensive documentation:**\n   - Added `/test/README.md` with complete directory guide\n   - Documented how to run tests from new locations\n   - Provided clear categorization guidelines\n\n**Benefits:**\n- Clean project root directory\n- Organized tests by functional area\n- Easy navigation for developers\n- Improved maintainability\n- Scalable structure for future tests\n\n**Total files organized:** 42 test files + 1 documentation file",
+      "priority": "Medium",
+      "status": "Done",
+      "assignee": "AI Assistant",
+      "reporter": "Dan",
+      "created": "2025-07-01T16:14:00+01:00",
+      "updated": "2025-07-01T16:14:00+01:00",
+      "resolution": "Successfully reorganized all test files into structured /test directory with proper categorization, fixed import paths, verified functionality, and created comprehensive documentation. Project now has clean organization and maintainable test structure.",
+      "components": ["project_structure", "testing", "documentation"],
+      "labels": ["organization", "testing", "maintenance", "cleanup"],
+      "fixVersions": ["2.0.1"],
+      "links": []
+    },
+    {
+      "id": "NEVIL-8",
+      "name": "Verify All Moved Test Files Functionality",
+      "type": "Task",
+      "summary": "Test and fix import paths for all remaining test files after reorganization",
+      "description": "After reorganizing 42 test files into the structured /test directory, only the navigation tests have been verified to work correctly. The remaining test files in hardware, AI, integration, and unit test categories need to be tested and their import paths fixed if necessary.\n\n**Scope:**\n\n1. **Hardware Tests (7 files):**\n   - `test_direct_hardware.py`\n   - `test_hardware_architecture.py`\n   - `test_hardware_initialization.py`\n   - `test_picar_hardware_logging.py`\n   - `test_picarx_integration.py`\n   - `test_real_hardware_logging.py`\n   - `setup_picarx.py`\n\n2. **AI Tests (12 files):**\n   - `test_ai_command_import.py`\n   - `test_whisper_tts.py`\n   - `run_test_dialog_manager.py`\n   - `run_dialog_manager.py`\n   - `run_speech_interface.py`\n   - `test_env_loading.py`\n   - `test_audio_hardware.py`\n   - `test_navigation_actions.py`\n   - `test_action_execution.py`\n   - `test_openai_message_flow.py`\n   - `test_speech_coordination.py`\n   - `test_integration.py`\n\n3. **Integration Tests (4 files):**\n   - `test_action_workflow.py`\n   - `run_unit_tests_modified.py`\n   - `generate_test_coverage.py`\n   - `integration_test.py`\n\n4. **Unit Tests (11 files):**\n   - Various Python, shell, and other test files\n\n**Tasks:**\n- Run each test file to identify import path issues\n- Fix hardcoded paths using relative path resolution\n- Update API calls and parameters where needed\n- Verify ROS2 environment dependencies\n- Document any tests that require specific hardware or environment setup\n- Update test documentation with any special requirements\n\n**Success Criteria:**\n- All test files can be executed without import errors\n- Tests that require hardware/environment clearly documented\n- Any API compatibility issues resolved\n- Test execution instructions updated in /test/README.md",
+      "priority": "Medium",
+      "status": "To Do",
+      "assignee": null,
+      "reporter": "Dan",
+      "created": "2025-07-01T16:15:00+01:00",
+      "updated": "2025-07-01T16:15:00+01:00",
+      "components": ["testing", "project_structure"],
+      "labels": ["testing", "verification", "import-paths", "post-reorganization"],
+      "fixVersions": ["2.0.1"],
+      "links": [{"type": "follows", "issue": "NEVIL-7"}]
     }
   ]
 }

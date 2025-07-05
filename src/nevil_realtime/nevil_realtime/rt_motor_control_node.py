@@ -5,7 +5,7 @@ import time
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from rclpy.callback_groups import RealtimeCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Range

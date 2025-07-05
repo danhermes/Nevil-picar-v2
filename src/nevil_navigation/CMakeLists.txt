@@ -42,11 +42,6 @@ ament_python_install_package(${PROJECT_NAME})
 # Install Python executables
 install(PROGRAMS
   scripts/navigation_node.py
-  scripts/test_tf2_imports.py
-  nevil_navigation/nevil_navigation_api/examples/basic_movement.py
-  nevil_navigation/nevil_navigation_api/examples/complex_navigation.py
-  nevil_navigation/nevil_navigation_api/examples/sensor_integration.py
-  nevil_navigation/nevil_navigation_api/examples/error_handling.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

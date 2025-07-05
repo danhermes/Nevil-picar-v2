@@ -12,12 +12,21 @@ PICARX_PATH = '/home/dan/picar-x'
 if PICARX_PATH not in sys.path:
     sys.path.insert(0, PICARX_PATH)
 
-try:
-    from picarx import Picarx
-    PICARX_AVAILABLE = True
-except ImportError:
-    PICARX_AVAILABLE = False
-    Picarx = None
+# Lazy import of picarx to avoid hardware initialization during build
+PICARX_AVAILABLE = False
+Picarx = None
+
+def _import_picarx():
+    """Lazy import of picarx library."""
+    global PICARX_AVAILABLE, Picarx
+    if not PICARX_AVAILABLE and Picarx is None:
+        try:
+            from picarx import Picarx
+            PICARX_AVAILABLE = True
+        except ImportError:
+            PICARX_AVAILABLE = False
+            Picarx = None
+    return PICARX_AVAILABLE
 
 # Optional ROS2 imports for when ROS2 integration is needed
 try:
@@ -58,10 +67,8 @@ class NevilNavigationAPI:
         # Initialize PiCar-X directly
         if force_mock:
             self._init_mock_mode()
-        elif PICARX_AVAILABLE:
-            self._init_direct_picarx()
         else:
-            self._init_mock_mode()
+            self._init_direct_picarx()
         
         self.logger.info('Nevil Navigation API initialized')
     
@@ -76,7 +83,7 @@ class NevilNavigationAPI:
     def _init_direct_picarx(self):
         """Initialize direct PiCar-X control."""
         try:
-            if PICARX_AVAILABLE:
+            if _import_picarx():
                 self.picarx = Picarx()
                 self.logger.info('Direct PiCar-X control initialized')
             else:

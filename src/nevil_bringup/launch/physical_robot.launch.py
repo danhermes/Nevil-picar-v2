@@ -18,7 +18,7 @@ def launch_setup(context, *args, **kwargs):
     nevil_bringup_dir = get_package_share_directory('nevil_bringup')
     nevil_core_dir = get_package_share_directory('nevil_core')
     nevil_navigation_dir = get_package_share_directory('nevil_navigation')
-    #nevil_perception_dir = get_package_share_directory('nevil_perception')
+    nevil_perception_dir = get_package_share_directory('nevil_perception')
     nevil_interfaces_ai_dir = get_package_share_directory('nevil_interfaces_ai')
     nevil_realtime_dir = get_package_share_directory('nevil_realtime')
     
@@ -34,22 +34,72 @@ def launch_setup(context, *args, **kwargs):
     # Create actions list
     actions = []
     
-    # Add minimal cleanup to prevent duplicates of only problematic nodes
-    cleanup_nodes = ExecuteProcess(
+    # Green field validation and cleanup
+    green_field_check = ExecuteProcess(
         cmd=['bash', '-c', '''
-            echo "Cleaning up potentially duplicate nodes..."
-            # Only kill nodes that might cause conflicts, not the ones we want to start
-            pkill -f "hardware_init" 2>/dev/null || true
-            pkill -f "system_monitor" 2>/dev/null || true
-            pkill -f "battery_monitor" 2>/dev/null || true
-            # Wait a moment for cleanup
-            sleep 1
-            echo "Minimal cleanup complete"
+            echo "🔍 Performing green field validation..."
+            
+            # Check for existing problematic processes
+            CONFLICTS=0
+            
+            # Check for hardware_init conflicts
+            if pgrep -f "nevil_bringup.*hardware_init" >/dev/null 2>&1; then
+                echo "⚠️  Found existing hardware_init process"
+                CONFLICTS=$((CONFLICTS + 1))
+            fi
+            
+            # Check for system_monitor conflicts
+            if pgrep -f "nevil_bringup.*system_monitor" >/dev/null 2>&1; then
+                echo "⚠️  Found existing system_monitor process"
+                CONFLICTS=$((CONFLICTS + 1))
+            fi
+            
+            # Check for battery_monitor conflicts
+            if pgrep -f "nevil_bringup.*battery_monitor" >/dev/null 2>&1; then
+                echo "⚠️  Found existing battery_monitor process"
+                CONFLICTS=$((CONFLICTS + 1))
+            fi
+            
+            # Check for navigation_node conflicts
+            if pgrep -f "navigation_node.py" >/dev/null 2>&1; then
+                echo "⚠️  Found existing navigation_node process"
+                CONFLICTS=$((CONFLICTS + 1))
+            fi
+            
+            if [ $CONFLICTS -gt 0 ]; then
+                echo "🧹 Cleaning up $CONFLICTS conflicting processes..."
+                
+                # Clean up only the specific conflicting processes
+                pkill -f "nevil_bringup.*hardware_init" 2>/dev/null || true
+                pkill -f "nevil_bringup.*system_monitor" 2>/dev/null || true
+                pkill -f "nevil_bringup.*battery_monitor" 2>/dev/null || true
+                pkill -f "navigation_node.py" 2>/dev/null || true
+                
+                # Wait for cleanup to complete
+                sleep 1
+                
+                # Verify cleanup
+                REMAINING=0
+                pgrep -f "nevil_bringup.*hardware_init" >/dev/null 2>&1 && REMAINING=$((REMAINING + 1))
+                pgrep -f "nevil_bringup.*system_monitor" >/dev/null 2>&1 && REMAINING=$((REMAINING + 1))
+                pgrep -f "nevil_bringup.*battery_monitor" >/dev/null 2>&1 && REMAINING=$((REMAINING + 1))
+                pgrep -f "navigation_node.py" >/dev/null 2>&1 && REMAINING=$((REMAINING + 1))
+                
+                if [ $REMAINING -eq 0 ]; then
+                    echo "✅ Green field achieved - environment is clean"
+                else
+                    echo "❌ Warning: $REMAINING processes still running after cleanup"
+                fi
+            else
+                echo "✅ Green field confirmed - no conflicts detected"
+            fi
+            
+            echo "🚀 Ready to start new nodes"
         '''],
         output='screen',
-        name='cleanup_nodes'
+        name='green_field_check'
     )
-    actions.append(cleanup_nodes)
+    actions.append(green_field_check)
     
     # Include the core system launch file
     core_launch = IncludeLaunchDescription(
@@ -63,29 +113,31 @@ def launch_setup(context, *args, **kwargs):
     )
     actions.append(core_launch)
     
-    # Include the navigation launch file
-    navigation_launch = IncludeLaunchDescription(
+    # Add a single navigation node directly instead of including navigation launch
+    # This prevents duplicate navigation nodes that cause GPIO conflicts
+    navigation_node = Node(
+        package='nevil_navigation',
+        executable='navigation_node.py',
+        name='navigation_node',
+        output='screen',
+        parameters=[
+            {'navigation_mode': 'manual'},
+            {'max_speed': 0.5}
+        ]
+    )
+    actions.append(navigation_node)
+    
+    # Include the perception launch file
+    perception_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
-            os.path.join(nevil_navigation_dir, 'launch', 'nevil_navigation.launch.py')
+            os.path.join(nevil_perception_dir, 'launch', 'nevil_perception.launch.py')
         ]),
         launch_arguments={
             'use_sim': 'false',
             'config_file': config_file
         }.items()
     )
-    actions.append(navigation_launch)
-    
-    # # Include the perception launch file
-    # perception_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([
-    #         os.path.join(nevil_perception_dir, 'launch', 'nevil_perception.launch.py')
-    #     ]),
-    #     launch_arguments={
-    #         'use_sim': 'false',
-    #         'config_file': config_file
-    #     }.items()
-    # )
-    # actions.append(perception_launch)
+    actions.append(perception_launch)
     
     # Include the AI interfaces launch file if voice is enabled
     if enable_voice.lower() in ['true', 't', 'yes', 'y', '1']:
@@ -138,18 +190,18 @@ def launch_setup(context, *args, **kwargs):
     )
     actions.append(system_monitor_node)
     
-    # Add battery monitor node
-    battery_monitor_node = Node(
-        package='nevil_bringup',
-        executable='battery_monitor',
-        name='battery_monitor',
-        output='screen',
-        parameters=[
-            {'config_file': config_file},
-            {'low_battery_threshold': 7.2}  # V
-        ]
-    )
-    actions.append(battery_monitor_node)
+    # # Add battery monitor node
+    # battery_monitor_node = Node(
+    #     package='nevil_bringup',
+    #     executable='battery_monitor',
+    #     name='battery_monitor',
+    #     output='screen',
+    #     parameters=[
+    #         {'config_file': config_file},
+    #         {'low_battery_threshold': 7.2}  # V
+    #     ]
+    # )
+    # actions.append(battery_monitor_node)
     
     return actions
 

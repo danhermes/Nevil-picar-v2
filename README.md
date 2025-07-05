@@ -47,7 +47,69 @@ git clone https://github.com/username/nevil-picar-v2.git
 cd nevil-picar-v2
 ```
 
-#### 2. Install ROS2 on Raspberry Pi (ARM64)
+#### 2. Install All PiCar Modules (Important)
+
+Before installing ROS2, you must install all the required PiCar modules and configure the audio hardware. This is essential for the robot's speaker and hardware functionality.
+
+**Make sure you are connected to the Internet and update your system:**
+
+```bash
+sudo apt update
+sudo apt upgrade
+```
+
+**Note:** Python3 related packages must be installed if you are using the Lite version OS:
+
+```bash
+sudo apt install git python3-pip python3-setuptools python3-smbus
+```
+
+**Install robot-hat:**
+
+```bash
+cd ~/
+git clone -b v2.0 https://github.com/sunfounder/robot-hat.git
+cd robot-hat
+sudo python3 setup.py install
+```
+
+**Download and install the vilib module:**
+
+```bash
+cd ~/
+git clone -b picamera2 https://github.com/sunfounder/vilib.git
+cd vilib
+sudo python3 install.py
+```
+
+**Download and install the picar-x module:**
+
+```bash
+cd ~/
+git clone -b v2.0 https://github.com/sunfounder/picar-x.git --depth 1
+cd picar-x
+sudo python3 setup.py install
+```
+
+This step will take a little while, so please be patient.
+
+**Configure Audio Hardware (Critical for Robot Speaker):**
+
+Finally, you need to run the script `i2samp.sh` to install the components required by the i2s amplifier, otherwise the picar-x will have no sound:
+
+```bash
+cd ~/picar-x
+sudo bash i2samp.sh
+sudo reboot
+```
+
+**Important:** This audio setup is required for Nevil v2.0's robot speaker to work. Without this configuration, audio will only work through HDMI or the Pi's 3.5mm jack, not the robot's built-in speaker.
+
+For complete PiCar-X documentation, see:
+- **PDF Guide**: [`docs/picar/docs-sunfounder-com-picar-x-en-latest.pdf`](docs/picar/docs-sunfounder-com-picar-x-en-latest.pdf)
+- **Online Documentation**: [https://docs.sunfounder.com/projects/picar-x-v20/en/latest/](https://docs.sunfounder.com/projects/picar-x-v20/en/latest/)
+
+#### 3. Install ROS2 on Raspberry Pi (ARM64)
 
 For Raspberry Pi and other ARM64 devices, we provide a specialized installation script that builds ROS2 from source:
 
@@ -241,6 +303,35 @@ Run the system on physical hardware:
 ros2 launch nevil_bringup full_system.launch.py
 ```
 
+## System Monitoring
+
+### Navigation Monitor
+
+The Navigation Monitor provides comprehensive real-time monitoring and critical error detection for the Nevil-picar v2.0 system:
+
+#### Key Capabilities
+- **Real-time Topic Monitoring**: Tracks all navigation-related topics with live updates
+- **Critical Error Detection**: Monitors ROS2 logs for crashes, segfaults, and fatal errors
+- **Node Health Monitoring**: Tracks critical navigation nodes and alerts when missing
+- **System Resource Monitoring**: Watches CPU, memory usage, and zombie processes
+- **Multi-level Alerting**: Color-coded alerts with severity levels (Fatal/Error/Warning)
+
+#### Quick Start
+```bash
+# Start navigation monitoring
+./src/nevil_navigation/scripts/start_monitor.sh
+
+# With logging for analysis
+./src/nevil_navigation/scripts/start_monitor.sh --log-file /tmp/nav_monitor.log
+```
+
+#### Monitored Components
+- **Topics**: `/cmd_vel`, `/goal_pose`, `/system_mode`, `/nevil/action_command`, `/planned_path`
+- **Nodes**: `navigation_node`, `ai_interface_node`, `dialog_manager_node`, `hardware_bridge_node`, `rt_motor_control_node`
+- **System**: Memory usage, CPU usage, zombie processes, topic timeouts
+
+For detailed documentation, see [Navigation Monitor Documentation](src/nevil_navigation/scripts/README_navigation_monitor.md).
+
 ## Nevil Bringup
 
 Integration package for the Nevil-picar v2.0 project. This package provides launch files and configuration for different system configurations.
@@ -253,6 +344,12 @@ The `nevil_bringup` package serves as the main integration point for the Nevil-p
 - Configuration files for various scenarios
 - Command-line interface for system management
 - Integration testing tools
+
+## Build Nevil (better than colcon as it copies in necessary stubs)
+### ALL
+./nevil build --cmake-clean-cache --event-handlers console_cohesion+
+### One Package
+./nevil build --packages-select nevil_navigation
 
 ## Launch Configurations
 

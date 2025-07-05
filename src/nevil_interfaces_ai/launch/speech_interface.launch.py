@@ -62,17 +62,8 @@ def generate_launch_description():
         output='screen'
     ))
     
-    # Add navigation node for action execution
-    ld.add_action(Node(
-        package='nevil_navigation',
-        executable='navigation_node.py',
-        name='navigation_node',
-        output='screen',
-        parameters=[
-            {'navigation_mode': 'autonomous'},
-            {'max_speed': 0.5}
-        ]
-    ))
+    # Navigation node is handled by the main launch file to prevent GPIO conflicts
+    # Removed duplicate navigation node - action execution will use the main navigation node
     
     # Add motion control node
     ld.add_action(Node(

@@ -1,4 +1,6 @@
-from robot_hat import Pin, ADC, PWM, Servo, utils
+from robot_hat import Pin, ADC, PWM, Servo
+#from robot_hat import Ultrasonic, utils
+from robot_hat import reset_mcu
 try:
     from robot_hat import fileDB
 except ImportError:
@@ -57,7 +59,8 @@ class Picarx(object):
                 ):
 
         # reset robot_hat
-        utils.reset_mcu()
+        #utils.reset_mcu()
+        reset_mcu()
         time.sleep(0.2)
 
         # --------- config_flie ---------
@@ -79,9 +82,16 @@ class Picarx(object):
         self.cam_tilt = Servo(servo_pins[1])   
         self.dir_servo_pin = Servo(servo_pins[2])
         # get calibration values
-        self.dir_cali_val = float(self.config_flie.get("picarx_dir_servo", default_value=0))
-        self.cam_pan_cali_val = float(self.config_flie.get("picarx_cam_pan_servo", default_value=0))
-        self.cam_tilt_cali_val = float(self.config_flie.get("picarx_cam_tilt_servo", default_value=0))
+        # Handle both fileDB and fallback config objects
+        try:
+            self.dir_cali_val = float(self.config_flie.get("picarx_dir_servo", default_value=0))
+            self.cam_pan_cali_val = float(self.config_flie.get("picarx_cam_pan_servo", default_value=0))
+            self.cam_tilt_cali_val = float(self.config_flie.get("picarx_cam_tilt_servo", default_value=0))
+        except AttributeError:
+            # Fallback if config_flie is a string or doesn't have get method
+            self.dir_cali_val = 0.0
+            self.cam_pan_cali_val = 0.0
+            self.cam_tilt_cali_val = 0.0
         # set servos to init angle
         self.dir_servo_pin.angle(self.dir_cali_val)
         self.cam_pan.angle(self.cam_pan_cali_val)
@@ -95,8 +105,13 @@ class Picarx(object):
         self.motor_direction_pins = [self.left_rear_dir_pin, self.right_rear_dir_pin]
         self.motor_speed_pins = [self.left_rear_pwm_pin, self.right_rear_pwm_pin]
         # get calibration values
-        self.cali_dir_value = self.config_flie.get("picarx_dir_motor", default_value="[1, 1]")
-        self.cali_dir_value = [int(i.strip()) for i in self.cali_dir_value.strip().strip("[]").split(",")]
+        # Handle config access with fallback
+        try:
+            self.cali_dir_value = self.config_flie.get("picarx_dir_motor", default_value="[1, 1]")
+            self.cali_dir_value = [int(i.strip()) for i in self.cali_dir_value.strip().strip("[]").split(",")]
+        except (AttributeError, ValueError):
+            # Fallback to default values
+            self.cali_dir_value = [1, 1]
         self.cali_speed_value = [0, 0]
         self.dir_current_angle = 0
         # init pwm
@@ -222,16 +237,16 @@ class Picarx(object):
             abs_current_angle = abs(current_angle)
             if abs_current_angle > self.DIR_MAX:
                 abs_current_angle = self.DIR_MAX
-            power_scale = (100 - abs_current_angle) / 100.0 
+            power_scale = (100 - abs_current_angle) / 100.0
             if (current_angle / abs_current_angle) > 0:
-                self.set_motor_speed(1, -1*speed)
-                self.set_motor_speed(2, speed * power_scale)
-            else:
                 self.set_motor_speed(1, -1*speed * power_scale)
-                self.set_motor_speed(2, speed )
+                self.set_motor_speed(2, -1*speed)
+            else:
+                self.set_motor_speed(1, -1*speed)
+                self.set_motor_speed(2, -1*speed * power_scale)
         else:
             self.set_motor_speed(1, -1*speed)
-            self.set_motor_speed(2, speed)  
+            self.set_motor_speed(2, -1*speed)
 
     def forward(self, speed):
         current_angle = self.dir_current_angle

@@ -1,26 +1,29 @@
 #!/bin/bash
+
+# Activate Python venv
 source ./nevil2env/bin/activate
+
+# Source ROS 2 overlays (parent first, then workspace)
+source ~/ros2_humble/install/setup.bash
 source ~/Nevil-picar-v2/install/setup.bash
 
-# Ensure PYTHON_EXECUTABLE is set to the virtualenv Python
-if [[ -z "$PYTHON_EXECUTABLE" || "$PYTHON_EXECUTABLE" == "/usr/bin/python3" ]]; then
-    export PYTHON_EXECUTABLE="$HOME/Nevil-picar-v2/nevil2env/bin/python"
-fi
+# Use Python from venv
+export PYTHON_EXECUTABLE="$HOME/Nevil-picar-v2/nevil2env/bin/python"
 
-# Source ROS 2 and workspace setup if available
-if [[ -f "$HOME/ros2_humble/install/setup.bash" ]]; then
-    source "$HOME/ros2_humble/install/setup.bash"
-fi
+# Ensure PYTHONPATH and LD_LIBRARY_PATH are passed correctly to sudo
+export PYTHONPATH="$($PYTHON_EXECUTABLE -c 'import sys; print(":".join(sys.path))')"
+export LD_LIBRARY_PATH="$HOME/ros2_humble/install/lib:$HOME/Nevil-picar-v2/install/lib:$LD_LIBRARY_PATH"
 
-if [[ -f "$HOME/Nevil-picar-v2/install/setup.bash" ]]; then
-    source "$HOME/Nevil-picar-v2/install/setup.bash"
-fi
+# Get absolute path to ros2 binary (inside overlay)
+ros2_cli="$(which ros2)"
 
-# Project root
-PROJECT_DIR="$HOME/Nevil-picar-v2"
+# Use Python from venv
+export PYTHON_EXECUTABLE="$HOME/Nevil-picar-v2/nevil2env/bin/python"
 
-# Get absolute path to ros2 executable
-ros2_cli=$(which ros2)
+# Ensure PYTHONPATH and LD_LIBRARY_PATH are passed correctly to sudo
+export PYTHONPATH="$($PYTHON_EXECUTABLE -c 'import sys; print(":".join(sys.path))')"
+export LD_LIBRARY_PATH="$HOME/ros2_humble/install/lib:$HOME/Nevil-picar-v2/install/lib:$LD_LIBRARY_PATH"
+
 
 # Dispatch logic
 if [[ "$1" == "launch" ]]; then
@@ -29,8 +32,10 @@ if [[ "$1" == "launch" ]]; then
         echo "? Error: No launch file specified."
         exit 1
     fi
-    echo "? Launching with: $ros2_cli launch $@"
-    "$ros2_cli" launch "$@"
+    echo "? Launching with: sudo $ros2_cli launch $@"
+    # sudo -E env PYTHONPATH="$PYTHONPATH" LD_LIBRARY_PATH="$LD_LIBRARY_PATH" "$ros2_cli" launch "$@"     
+    "$ros2_cli" launch "$@"     
+
 
 elif [[ "$1" == "build" ]]; then
     shift

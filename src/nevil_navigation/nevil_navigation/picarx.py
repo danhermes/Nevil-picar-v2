@@ -1,10 +1,11 @@
 from robot_hat import Pin, ADC, PWM, Servo
 #from robot_hat import Ultrasonic, utils
 from robot_hat import reset_mcu
+
 try:
-    from robot_hat import fileDB
+    from robot_hat import FileDB as fileDB
 except ImportError:
-    # fileDB not available in this version of robot_hat
+    # FileDB not available in this version of robot_hat
     fileDB = None
 
 try:
@@ -20,6 +21,8 @@ except ImportError:
     Ultrasonic = None
 import time
 import os
+import configparser
+import logging
 
 
 def constrain(x, min_val, max_val):
@@ -64,33 +67,64 @@ class Picarx(object):
         time.sleep(0.2)
 
         # --------- config_flie ---------
+        logger = logging.getLogger(__name__)
         if fileDB is not None:
-            self.config_flie = fileDB(config, 777, os.getlogin())
+            try:
+                logger.info(f"Attempting to initialize FileDB with config: {config}")
+                self.config_flie = fileDB(db=config)
+                logger.info("✅ FileDB initialization: SUCCESS")
+            except Exception as e:
+                logger.error(f"❌ FileDB initialization FAILED: {e}")
+                logger.info("Falling back to FallbackFileDB")
+                # Create fallback config file handler
+                class FallbackFileDB:
+                    def __init__(self):
+                        self.data = {}
+                    def get(self, key, default_value=None):
+                        return self.data.get(key, default_value)
+                    def set(self, key, value):
+                        self.data[key] = value
+                self.config_flie = FallbackFileDB()
         else:
-            # Create a simple fallback config object
-            class FallbackConfig:
+            logger.warning("⚠️  FileDB is None - using FallbackFileDB")
+            # Create fallback config file handler
+            class FallbackFileDB:
                 def __init__(self):
-                    self._data = {}
+                    self.data = {}
                 def get(self, key, default_value=None):
-                    return self._data.get(key, default_value)
+                    return self.data.get(key, default_value)
                 def set(self, key, value):
-                    self._data[key] = value
-            self.config_flie = FallbackConfig()
+                    self.data[key] = value
+            self.config_flie = FallbackFileDB()
 
         # --------- servos init ---------
         self.cam_pan = Servo(servo_pins[0])
         self.cam_tilt = Servo(servo_pins[1])   
         self.dir_servo_pin = Servo(servo_pins[2])
         # get calibration values
-        # Handle both fileDB and fallback config objects
+        logger.info("Retrieving servo calibration values from config...")
         try:
-            self.dir_cali_val = float(self.config_flie.get("picarx_dir_servo", default_value=0))
-            self.cam_pan_cali_val = float(self.config_flie.get("picarx_cam_pan_servo", default_value=0))
-            self.cam_tilt_cali_val = float(self.config_flie.get("picarx_cam_tilt_servo", default_value=0))
-        except AttributeError:
-            # Fallback if config_flie is a string or doesn't have get method
+            dir_servo_raw = self.config_flie.get("picarx_dir_servo", default_value=0)
+            self.dir_cali_val = float(dir_servo_raw)
+            logger.info(f"✅ Direction servo calibration: {self.dir_cali_val} (raw: {dir_servo_raw})")
+        except Exception as e:
+            logger.error(f"❌ Failed to get direction servo calibration: {e}")
             self.dir_cali_val = 0.0
+            
+        try:
+            cam_pan_raw = self.config_flie.get("picarx_cam_pan_servo", default_value=0)
+            self.cam_pan_cali_val = float(cam_pan_raw)
+            logger.info(f"✅ Camera pan calibration: {self.cam_pan_cali_val} (raw: {cam_pan_raw})")
+        except Exception as e:
+            logger.error(f"❌ Failed to get camera pan calibration: {e}")
             self.cam_pan_cali_val = 0.0
+            
+        try:
+            cam_tilt_raw = self.config_flie.get("picarx_cam_tilt_servo", default_value=0)
+            self.cam_tilt_cali_val = float(cam_tilt_raw)
+            logger.info(f"✅ Camera tilt calibration: {self.cam_tilt_cali_val} (raw: {cam_tilt_raw})")
+        except Exception as e:
+            logger.error(f"❌ Failed to get camera tilt calibration: {e}")
             self.cam_tilt_cali_val = 0.0
         # set servos to init angle
         self.dir_servo_pin.angle(self.dir_cali_val)
@@ -105,13 +139,8 @@ class Picarx(object):
         self.motor_direction_pins = [self.left_rear_dir_pin, self.right_rear_dir_pin]
         self.motor_speed_pins = [self.left_rear_pwm_pin, self.right_rear_pwm_pin]
         # get calibration values
-        # Handle config access with fallback
-        try:
-            self.cali_dir_value = self.config_flie.get("picarx_dir_motor", default_value="[1, 1]")
-            self.cali_dir_value = [int(i.strip()) for i in self.cali_dir_value.strip().strip("[]").split(",")]
-        except (AttributeError, ValueError):
-            # Fallback to default values
-            self.cali_dir_value = [1, 1]
+        self.cali_dir_value = self.config_flie.get("picarx_dir_motor", default_value="[1, 1]")
+        self.cali_dir_value = [int(i.strip()) for i in self.cali_dir_value.strip().strip("[]").split(",")]
         self.cali_speed_value = [0, 0]
         self.dir_current_angle = 0
         # init pwm
@@ -146,8 +175,17 @@ class Picarx(object):
             self.cliff_reference = self.DEFAULT_CLIFF_REF
 
         # --------- ultrasonic init ---------
-        trig, echo= ultrasonic_pins
-        self.ultrasonic = Ultrasonic(Pin(trig), Pin(echo, mode=Pin.IN, pull=Pin.PULL_DOWN))
+        if Ultrasonic is not None:
+            trig, echo= ultrasonic_pins
+            self.ultrasonic = Ultrasonic(Pin(trig), Pin(echo, mode=Pin.IN, pull=Pin.PULL_DOWN))
+        else:
+            # Create fallback ultrasonic object
+            class FallbackUltrasonic:
+                def __init__(self):
+                    pass
+                def read(self):
+                    return 100.0  # Default safe distance
+            self.ultrasonic = FallbackUltrasonic()
         
     def set_motor_speed(self, motor, speed):
         ''' set motor speed

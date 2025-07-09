@@ -1,0 +1,17 @@
+2025-07-09 01:20:03,248 - servo_calibration - INFO - [<module>:95] - === Servo Calibration Session Started ===
+2025-07-09 01:20:03,248 - servo_calibration - INFO - [<module>:96] - Initial servo calibration values: dir=36.0, pan=0.0, tilt=0.0
+2025-07-09 01:20:03,249 - servo_calibration - INFO - [<module>:97] - Initial motor calibration values: [1, 1]
+2025-07-09 01:20:03,249 - servo_calibration - INFO - [<module>:98] - Configuration source: /opt/picar-x/picar-x.conf
+2025-07-09 01:20:03,249 - servo_calibration - DEBUG - [<module>:99] - picarx_dir_servo config key location: fileDB.get('picarx_dir_servo')
+2025-07-09 01:20:03,249 - servo_calibration - DEBUG - [servos_move:123] - Moving direction servo to angle 0
+2025-07-09 01:20:03,450 - servo_calibration - DEBUG - [servos_move:123] - Moving camera pan servo to angle 0
+2025-07-09 01:20:03,657 - servo_calibration - DEBUG - [servos_move:123] - Moving camera tilt servo to angle 0
+2025-07-09 01:21:23,863 - servo_calibration_test - INFO - [<module>:60] - === Test Servo Calibration Session Started ===
+2025-07-09 01:21:23,864 - servo_calibration_test - DEBUG - [<module>:61] - This is a debug message
+2025-07-09 01:21:23,864 - servo_calibration_test - INFO - [<module>:62] - This is an info message
+2025-07-09 01:21:23,864 - servo_calibration_test - WARNING - [<module>:63] - This is a warning message
+2025-07-09 01:21:23,865 - servo_calibration_test - ERROR - [<module>:64] - This is an error message
+2025-07-09 01:21:23,865 - servo_calibration_test - INFO - [<module>:65] - === Test Servo Calibration Session Ended ===
+2025-07-09 02:49:41,223 - servo_calibration - INFO - [initialize_hardware:91] - === Initializing Picar-X Hardware ===
+2025-07-09 02:49:41,243 - servo_calibration - ERROR - [main:309] - Servo calibration session failed with exception: 'GPIO busy'
+2025-07-09 02:49:41,244 - servo_calibration - INFO - [main:316] - === Servo Calibration Session Ended ===

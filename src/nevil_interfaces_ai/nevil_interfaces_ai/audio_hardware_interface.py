@@ -330,6 +330,10 @@ class AudioHardwareInterface:
                         if self.music_player:
                             try:
                                 self.logger.debug('Playing audio with Robot HAT Music')
+                                
+                                #VOLUME MAX
+                                self.music_player.pygame.mixer.music.set_volume(1.0)
+
                                 self.music_player.music_play(output_file)
                                 
                                 # Wait for playback with timeout to prevent hanging

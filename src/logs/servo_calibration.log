@@ -1,0 +1,86 @@
+2025-07-09 01:14:25,197 - servo_calibration - INFO - [<module>:86] - === Servo Calibration Session Started ===
+2025-07-09 01:14:25,197 - servo_calibration - INFO - [<module>:87] - Initial servo calibration values: dir=33.6, pan=0.0, tilt=0.0
+2025-07-09 01:14:25,197 - servo_calibration - INFO - [<module>:88] - Initial motor calibration values: [1, 1]
+2025-07-09 01:14:25,197 - servo_calibration - INFO - [<module>:89] - Configuration source: /opt/picar-x/picar-x.conf
+2025-07-09 01:14:42,913 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 33.6 -> 34.0 (step: +0.4)
+2025-07-09 01:14:43,201 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 34.0 -> 34.4 (step: +0.4)
+2025-07-09 01:14:43,449 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 34.4 -> 34.8 (step: +0.4)
+2025-07-09 01:14:44,009 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 34.8 -> 35.2 (step: +0.4)
+2025-07-09 01:14:44,337 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 35.2 -> 35.6 (step: +0.4)
+2025-07-09 01:14:45,145 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 35.6 -> 36.0 (step: +0.4)
+2025-07-09 01:14:45,417 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 36.0 -> 36.4 (step: +0.4)
+2025-07-09 01:14:45,745 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 36.4 -> 36.8 (step: +0.4)
+2025-07-09 01:14:46,073 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 36.8 -> 37.2 (step: +0.4)
+2025-07-09 01:14:46,305 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 37.2 -> 37.6 (step: +0.4)
+2025-07-09 01:14:46,681 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 37.6 -> 37.2 (step: -0.4)
+2025-07-09 01:14:46,913 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 37.2 -> 36.8 (step: -0.4)
+2025-07-09 01:14:47,297 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 36.8 -> 36.4 (step: -0.4)
+2025-07-09 01:14:47,520 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 36.4 -> 36.0 (step: -0.4)
+2025-07-09 01:14:47,737 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 36.0 -> 35.6 (step: -0.4)
+2025-07-09 01:14:47,993 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 35.6 -> 35.2 (step: -0.4)
+2025-07-09 01:14:48,298 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 35.2 -> 34.8 (step: -0.4)
+2025-07-09 01:14:48,585 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 34.8 -> 34.4 (step: -0.4)
+2025-07-09 01:14:48,865 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 34.4 -> 34.0 (step: -0.4)
+2025-07-09 01:14:49,137 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 34.0 -> 33.6 (step: -0.4)
+2025-07-09 01:14:49,433 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 33.6 -> 33.2 (step: -0.4)
+2025-07-09 01:14:49,697 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 33.2 -> 32.8 (step: -0.4)
+2025-07-09 01:14:49,961 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 32.8 -> 32.4 (step: -0.4)
+2025-07-09 01:14:50,225 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 32.4 -> 32.0 (step: -0.4)
+2025-07-09 01:14:50,793 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 32.0 -> 32.4 (step: +0.4)
+2025-07-09 01:14:51,017 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 32.4 -> 32.8 (step: +0.4)
+2025-07-09 01:14:51,233 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 32.8 -> 33.2 (step: +0.4)
+2025-07-09 01:14:51,481 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 33.2 -> 33.6 (step: +0.4)
+2025-07-09 01:14:51,785 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 33.6 -> 34.0 (step: +0.4)
+2025-07-09 01:14:52,161 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 34.0 -> 34.4 (step: +0.4)
+2025-07-09 01:14:53,217 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 34.4 -> 34.8 (step: +0.4)
+2025-07-09 01:14:53,577 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 34.8 -> 35.2 (step: +0.4)
+2025-07-09 01:14:54,593 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 35.2 -> 35.6 (step: +0.4)
+2025-07-09 01:14:55,025 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 35.6 -> 36.0 (step: +0.4)
+2025-07-09 01:14:55,417 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 36.0 -> 36.4 (step: +0.4)
+2025-07-09 01:14:56,305 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 36.4 -> 36.0 (step: -0.4)
+2025-07-09 01:14:56,585 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 36.0 -> 35.6 (step: -0.4)
+2025-07-09 01:14:57,185 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 35.6 -> 36.0 (step: +0.4)
+2025-07-09 01:15:02,345 - servo_calibration - INFO - [cali_helper:216] - === Starting Servo Calibration Save Process ===
+2025-07-09 01:15:02,346 - servo_calibration - INFO - [cali_helper:220] - Direction servo: old_value=36.0, new_value=36.0
+2025-07-09 01:15:02,347 - servo_calibration - INFO - [cali_helper:224] - Direction servo calibration successful: 36.0 -> 36.0
+2025-07-09 01:15:02,347 - servo_calibration - INFO - [cali_helper:230] - Camera pan servo: old_value=0.0, new_value=0.0
+2025-07-09 01:15:02,350 - servo_calibration - INFO - [cali_helper:234] - Camera pan servo calibration successful: 0.0 -> 0.0
+2025-07-09 01:15:02,351 - servo_calibration - INFO - [cali_helper:240] - Camera tilt servo: old_value=0.0, new_value=0.0
+2025-07-09 01:15:02,352 - servo_calibration - INFO - [cali_helper:244] - Camera tilt servo calibration successful: 0.0 -> 0.0
+2025-07-09 01:15:02,352 - servo_calibration - INFO - [cali_helper:250] - Motor 1 direction: old_value=1, new_value=1
+2025-07-09 01:15:02,352 - servo_calibration - INFO - [cali_helper:253] - Motor 1 direction calibration successful
+2025-07-09 01:15:02,553 - servo_calibration - INFO - [cali_helper:261] - Post-calibration verification: dir=36.0, pan=0.0, tilt=0.0
+2025-07-09 01:15:02,554 - servo_calibration - INFO - [cali_helper:262] - === Servo Calibration Save Process Complete ===
+2025-07-09 01:15:05,890 - servo_calibration - INFO - [<module>:285] - === Servo Calibration Session Interrupted ===
+2025-07-09 01:15:05,891 - servo_calibration - INFO - [<module>:291] - === Servo Calibration Session Cleanup ===
+2025-07-09 01:15:05,999 - servo_calibration - INFO - [<module>:294] - === Servo Calibration Session Ended ===
+2025-07-09 01:18:11,320 - servo_calibration - INFO - [<module>:86] - === Servo Calibration Session Started ===
+2025-07-09 01:18:11,321 - servo_calibration - INFO - [<module>:87] - Initial servo calibration values: dir=36.0, pan=0.0, tilt=0.0
+2025-07-09 01:18:11,321 - servo_calibration - INFO - [<module>:88] - Initial motor calibration values: [1, 1]
+2025-07-09 01:18:11,321 - servo_calibration - INFO - [<module>:89] - Configuration source: /opt/picar-x/picar-x.conf
+2025-07-09 01:18:17,027 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 36.0 -> 36.4 (step: +0.4)
+2025-07-09 01:18:17,507 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 36.4 -> 36.8 (step: +0.4)
+2025-07-09 01:18:17,747 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 36.8 -> 37.2 (step: +0.4)
+2025-07-09 01:18:18,555 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 37.2 -> 37.6 (step: +0.4)
+2025-07-09 01:18:18,787 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 37.6 -> 38.0 (step: +0.4)
+2025-07-09 01:18:19,179 - servo_calibration - INFO - [cali_helper:180] - Increased direction servo offset: 38.0 -> 38.4 (step: +0.4)
+2025-07-09 01:18:19,668 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 38.4 -> 38.0 (step: -0.4)
+2025-07-09 01:18:19,923 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 38.0 -> 37.6 (step: -0.4)
+2025-07-09 01:18:20,163 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 37.6 -> 37.2 (step: -0.4)
+2025-07-09 01:18:20,451 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 37.2 -> 36.8 (step: -0.4)
+2025-07-09 01:18:20,731 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 36.8 -> 36.4 (step: -0.4)
+2025-07-09 01:18:21,508 - servo_calibration - INFO - [cali_helper:191] - Decreased direction servo offset: 36.4 -> 36.0 (step: -0.4)
+2025-07-09 01:18:27,012 - servo_calibration - INFO - [cali_helper:216] - === Starting Servo Calibration Save Process ===
+2025-07-09 01:18:27,012 - servo_calibration - INFO - [cali_helper:220] - Direction servo: old_value=36.0, new_value=36.0
+2025-07-09 01:18:27,014 - servo_calibration - INFO - [cali_helper:224] - Direction servo calibration successful: 36.0 -> 36.0
+2025-07-09 01:18:27,014 - servo_calibration - INFO - [cali_helper:230] - Camera pan servo: old_value=0.0, new_value=0.0
+2025-07-09 01:18:27,018 - servo_calibration - INFO - [cali_helper:234] - Camera pan servo calibration successful: 0.0 -> 0.0
+2025-07-09 01:18:27,018 - servo_calibration - INFO - [cali_helper:240] - Camera tilt servo: old_value=0.0, new_value=0.0
+2025-07-09 01:18:27,019 - servo_calibration - INFO - [cali_helper:244] - Camera tilt servo calibration successful: 0.0 -> 0.0
+2025-07-09 01:18:27,019 - servo_calibration - INFO - [cali_helper:250] - Motor 1 direction: old_value=1, new_value=1
+2025-07-09 01:18:27,021 - servo_calibration - INFO - [cali_helper:253] - Motor 1 direction calibration successful
+2025-07-09 01:18:27,221 - servo_calibration - INFO - [cali_helper:261] - Post-calibration verification: dir=36.0, pan=0.0, tilt=0.0
+2025-07-09 01:18:27,222 - servo_calibration - INFO - [cali_helper:262] - === Servo Calibration Save Process Complete ===
+2025-07-09 01:18:31,652 - servo_calibration - INFO - [<module>:285] - === Servo Calibration Session Interrupted ===
+2025-07-09 01:18:31,652 - servo_calibration - INFO - [<module>:291] - === Servo Calibration Session Cleanup ===
+2025-07-09 01:18:31,759 - servo_calibration - INFO - [<module>:294] - === Servo Calibration Session Ended ===

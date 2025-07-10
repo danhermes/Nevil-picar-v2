@@ -12,6 +12,9 @@ import json
 import os
 from typing import Optional, Dict, Any
 import logging
+import signal
+import sys
+import threading
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 # Import the fixed audio hardware interface
@@ -35,6 +38,12 @@ class IntegratedAIInterface(Node):
         # Initialize logging
         self.logger = self.get_logger()
         self.logger.info("🤖 Initializing Integrated AI Interface...")
+        
+        # Set up signal handlers for graceful shutdown
+        self._setup_signal_handlers()
+        
+        # Initialize shutdown flag
+        self.shutdown_requested = False
         
         # Initialize OpenAI client if available
         self.openai_client = None
@@ -93,6 +102,35 @@ class IntegratedAIInterface(Node):
         
         self.logger.info("🚀 Integrated AI Interface ready!")
     
+    def _setup_signal_handlers(self):
+        """
+        Set up signal handlers for graceful shutdown on USB device disconnection.
+        """
+        try:
+            def signal_handler(signum, frame):
+                self.logger.warning(f"Received signal {signum}, initiating graceful shutdown...")
+                self.shutdown_requested = True
+                
+                # Try to reinitialize audio hardware if it's a USB-related issue
+                if self.audio_hw and not self.audio_hw.simulation_mode:
+                    try:
+                        self.logger.info("Attempting to reinitialize audio hardware...")
+                        self.audio_hw._reinitialize_audio_safe()
+                    except Exception as e:
+                        self.logger.error(f"Failed to reinitialize audio hardware: {e}")
+                
+                # Don't exit immediately, let the system try to recover
+                
+            # Handle common signals that might occur during USB disconnection
+            signal.signal(signal.SIGTERM, signal_handler)
+            signal.signal(signal.SIGINT, signal_handler)
+            if hasattr(signal, 'SIGHUP'):
+                signal.signal(signal.SIGHUP, signal_handler)
+            
+            self.logger.info("Signal handlers configured for graceful shutdown")
+        except Exception as e:
+            self.logger.warning(f"Failed to set up signal handlers: {e}")
+    
     def handle_text_command(self, msg: String) -> None:
         """
         Handle incoming text commands and generate AI responses
@@ -124,12 +162,29 @@ class IntegratedAIInterface(Node):
             self.logger.info(f"📤 Response published: '{response_text}'")
             
             # Convert response to speech using the fixed audio hardware interface
-            if self.audio_hw:
-                self.logger.info("🎵 Converting to speech...")
-                self.audio_hw.speak_text(response_text)
-                self.logger.info("🎵 Speech conversion completed")
+            if self.audio_hw and not self.shutdown_requested:
+                try:
+                    self.logger.info("🎵 Converting to speech...")
+                    self.audio_hw.speak_text(response_text)
+                    self.logger.info("🎵 Speech conversion completed")
+                except Exception as tts_error:
+                    self.logger.error(f"❌ TTS error (possibly USB device disconnected): {tts_error}")
+                    # Try to reinitialize audio hardware
+                    try:
+                        self.logger.info("🔄 Attempting to recover audio hardware...")
+                        self.audio_hw._reinitialize_audio_safe()
+                        # Try TTS again after reinitialization
+                        self.audio_hw.speak_text(response_text)
+                        self.logger.info("✅ Audio hardware recovered and TTS completed")
+                    except Exception as recovery_error:
+                        self.logger.error(f"❌ Audio recovery failed: {recovery_error}")
+                        # Continue without TTS rather than crashing
+                        self.logger.warning("⚠️ Continuing without TTS due to hardware issues")
             else:
-                self.logger.warning("⚠️ No audio hardware available for TTS")
+                if self.shutdown_requested:
+                    self.logger.info("⚠️ Shutdown requested, skipping TTS")
+                else:
+                    self.logger.warning("⚠️ No audio hardware available for TTS")
             
         except Exception as e:
             self.logger.error(f"❌ Error handling speech command: {e}")

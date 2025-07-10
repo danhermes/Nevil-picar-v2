@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Cleanup function for proper shutdown
+cleanup() {
+    echo ""
+    echo "🧹 Cleaning up ROS2 processes..."
+    
+    # Kill any ROS2 processes
+    pkill -f "ros2 launch" 2>/dev/null || true
+    pkill -f "ros2 run" 2>/dev/null || true
+    
+    # Stop and restart ROS2 daemon to clear ghost nodes
+    ros2 daemon stop 2>/dev/null || true
+    ros2 daemon start 2>/dev/null || true
+    
+    echo "✅ Cleanup complete"
+    exit 0
+}
+
+# Set up signal traps for clean shutdown
+trap cleanup SIGINT SIGTERM
+
 # Activate Python venv
 source ./nevil2env/bin/activate
 

@@ -34,72 +34,8 @@ def launch_setup(context, *args, **kwargs):
     # Create actions list
     actions = []
     
-    # Green field validation and cleanup
-    green_field_check = ExecuteProcess(
-        cmd=['bash', '-c', '''
-            echo "🔍 Performing green field validation..."
-            
-            # Check for existing problematic processes
-            CONFLICTS=0
-            
-            # Check for hardware_init conflicts
-            if pgrep -f "nevil_bringup.*hardware_init" >/dev/null 2>&1; then
-                echo "⚠️  Found existing hardware_init process"
-                CONFLICTS=$((CONFLICTS + 1))
-            fi
-            
-            # Check for system_monitor conflicts
-            if pgrep -f "nevil_bringup.*system_monitor" >/dev/null 2>&1; then
-                echo "⚠️  Found existing system_monitor process"
-                CONFLICTS=$((CONFLICTS + 1))
-            fi
-            
-            # Check for battery_monitor conflicts
-            if pgrep -f "nevil_bringup.*battery_monitor" >/dev/null 2>&1; then
-                echo "⚠️  Found existing battery_monitor process"
-                CONFLICTS=$((CONFLICTS + 1))
-            fi
-            
-            # Check for navigation_node conflicts
-            if pgrep -f "navigation_node.py" >/dev/null 2>&1; then
-                echo "⚠️  Found existing navigation_node process"
-                CONFLICTS=$((CONFLICTS + 1))
-            fi
-            
-            if [ $CONFLICTS -gt 0 ]; then
-                echo "🧹 Cleaning up $CONFLICTS conflicting processes..."
-                
-                # Clean up only the specific conflicting processes
-                pkill -f "nevil_bringup.*hardware_init" 2>/dev/null || true
-                pkill -f "nevil_bringup.*system_monitor" 2>/dev/null || true
-                pkill -f "nevil_bringup.*battery_monitor" 2>/dev/null || true
-                pkill -f "navigation_node.py" 2>/dev/null || true
-                
-                # Wait for cleanup to complete
-                sleep 1
-                
-                # Verify cleanup
-                REMAINING=0
-                pgrep -f "nevil_bringup.*hardware_init" >/dev/null 2>&1 && REMAINING=$((REMAINING + 1))
-                pgrep -f "nevil_bringup.*system_monitor" >/dev/null 2>&1 && REMAINING=$((REMAINING + 1))
-                pgrep -f "nevil_bringup.*battery_monitor" >/dev/null 2>&1 && REMAINING=$((REMAINING + 1))
-                pgrep -f "navigation_node.py" >/dev/null 2>&1 && REMAINING=$((REMAINING + 1))
-                
-                if [ $REMAINING -eq 0 ]; then
-                    echo "✅ Green field achieved - environment is clean"
-                else
-                    echo "❌ Warning: $REMAINING processes still running after cleanup"
-                fi
-            else
-                echo "✅ Green field confirmed - no conflicts detected"
-            fi
-            
-            echo "🚀 Ready to start new nodes"
-        '''],
-        output='screen',
-        name='green_field_check'
-    )
-    actions.append(green_field_check)
+    # Note: Green field validation now runs synchronously in generate_launch_description()
+    # before any nodes are started, preventing the "split personality Nevil" issue
     
     # Include the core system launch file
     core_launch = IncludeLaunchDescription(
@@ -211,6 +147,108 @@ def generate_launch_description():
     
     This launch file starts the system on the physical robot hardware.
     """
+    
+    # CRITICAL: Execute green field validation SYNCHRONOUSLY before any nodes start
+    print("🔍 Performing comprehensive green field validation...")
+    
+    # Check for existing problematic processes
+    conflicts = 0
+    cleanup_needed = False
+    
+    # Define all process patterns to check
+    process_patterns = [
+        ("nevil_bringup.*hardware_init", "hardware_init"),
+        ("nevil_bringup.*system_monitor", "system_monitor"),
+        ("nevil_bringup.*battery_monitor", "battery_monitor"),
+        ("navigation_node", "navigation_node"),
+        ("ai_interface_node", "ai_interface_node"),
+        ("motion_control_node", "motion_control_node"),
+        ("speech_recognition_node", "speech_recognition_node"),
+        ("speech_synthesis_node", "speech_synthesis_node"),
+        ("camera_vision", "camera_vision"),
+        ("obstacle_detection", "obstacle_detection"),
+        ("system_manager", "system_manager")
+    ]
+    
+    # Check for conflicts
+    for pattern, name in process_patterns:
+        try:
+            result = subprocess.run(['pgrep', '-f', pattern],
+                                  capture_output=True, text=True)
+            if result.returncode == 0:
+                print(f"⚠️  Found existing {name} process")
+                conflicts += 1
+                cleanup_needed = True
+        except Exception:
+            pass  # pgrep not found or other error, continue
+    
+    # Perform cleanup if needed
+    if cleanup_needed:
+        print(f"🧹 Cleaning up {conflicts} conflicting processes...")
+        
+        # First pass: Standard cleanup
+        for pattern, name in process_patterns:
+            try:
+                subprocess.run(['pkill', '-f', pattern],
+                             capture_output=True, check=False)
+            except Exception:
+                pass  # Continue even if pkill fails
+        
+        # Wait for cleanup to complete
+        import time
+        time.sleep(2)
+        
+        # Second pass: More aggressive cleanup for stubborn processes
+        stubborn_patterns = [
+            "speech_recognition_node",
+            "speech_synthesis_node",
+            "ai_interface_node"
+        ]
+        
+        for pattern in stubborn_patterns:
+            try:
+                # Get PIDs first
+                result = subprocess.run(['pgrep', '-f', pattern],
+                                      capture_output=True, text=True)
+                if result.returncode == 0:
+                    pids = result.stdout.strip().split('\n')
+                    print(f"🔨 Force killing stubborn {pattern} processes: {pids}")
+                    for pid in pids:
+                        if pid.strip():
+                            subprocess.run(['kill', '-9', pid.strip()],
+                                         capture_output=True, check=False)
+            except Exception:
+                pass
+        
+        # Final wait
+        time.sleep(1)
+        
+        # Verify cleanup
+        remaining = 0
+        for pattern, name in process_patterns:
+            try:
+                result = subprocess.run(['pgrep', '-f', pattern],
+                                      capture_output=True, text=True)
+                if result.returncode == 0:
+                    remaining += 1
+            except Exception:
+                pass
+        
+        if remaining == 0:
+            print("✅ Green field achieved - environment is clean")
+        else:
+            print(f"❌ Warning: {remaining} processes still running after cleanup")
+            # Show what remains for debugging
+            print("🔍 Remaining processes:")
+            try:
+                subprocess.run(['ps', 'aux'], capture_output=False, check=False)
+            except Exception:
+                pass
+    else:
+        print("✅ Green field confirmed - no conflicts detected")
+    
+    print("🚀 Ready to start new nodes")
+    
     # Include common launch file
     common_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([

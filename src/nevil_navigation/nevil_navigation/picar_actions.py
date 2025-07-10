@@ -2,29 +2,30 @@ import sys
 import os
 from time import sleep
 import time
-import rclpy
-from rclpy.node import Node
 
 # Actions: forward, backward, left, right, stop, twist left, twist right, come here, shake head,
 #    nod, wave hands, resist, act cute, rub hands, think, twist body, celebrate, depressed, keep think
 #
 # Sounds: honk, start engine
  
-class PicarActions(Node):
-    def __init__(self, car_instance=None):
-        super().__init__('picar_actions')
-        self.get_logger().info(f"Starting PicarActions().")
+class PicarActions:
+    def __init__(self, car_instance=None, logger=None):
+        self.logger = logger
+        if self.logger:
+            self.logger.info(f"Starting PicarActions().")
         
         # Use provided car instance or initialize our own
         if car_instance is not None:
             self.car = car_instance
             self.speed = 30
-            self.get_logger().info("Using provided car instance")
+            if self.logger:
+                self.logger.info("Using provided car instance")
             # Initialize wheels to straight position
             self.initialize_servos()
             # Note: servos_test() can be called manually when needed
         else:
-            self.get_logger().fatal("No PicarX available.")
+            if self.logger:
+                self.logger.error("No PicarX available.")
     #         # Initialize car hardware like v1.0
     #         self.car = None
     #         self.speed = 30
@@ -48,20 +49,22 @@ class PicarActions(Node):
     #         self.speed = 30
             
     #         time.sleep(1)
-    #         self.get_logger().info("PiCar hardware initialized successfully")
+    #         self.logger.info("PiCar hardware initialized successfully")
             
     #     except Exception as e:
     #         self.car = None
-    #         self.get_logger().warn(f"Failed to initialize PiCar hardware: {e}")
-    #         self.get_logger().info("Running in simulation mode without hardware")
+    #         self.logger.warn(f"Failed to initialize PiCar hardware: {e}")
+    #         self.logger.info("Running in simulation mode without hardware")
 
     def initialize_servos(self):
         """Initialize servos to straight position (0 degrees)"""
         if self.car is None:
-            self.get_logger().warning("Cannot initialize servos: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot initialize servos: No car instance available")
             return
        
-        self.get_logger().info("Initializing servos to 0 degrees (straight)")
+        if self.logger:
+            self.logger.info("Initializing servos to 0 degrees (straight)")
 
         self.stop() #stop motors
         self.car.set_dir_servo_angle(0) # steering axle
@@ -70,7 +73,8 @@ class PicarActions(Node):
         sleep(0.2)
 
         # Final verification
-        self.get_logger().info("Servo initialization complete - wheels should now be straight")
+        if self.logger:
+            self.logger.info("Servo initialization complete - wheels should now be straight")
 
 
     def servos_test(self):
@@ -99,17 +103,20 @@ class PicarActions(Node):
     def move_forward_this_way(self, distance_cm=20, speed=None):
         """Move forward a specific distance at given speed"""
         if self.car is None:
-            self.get_logger().warning("Cannot move forward: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot move forward: No car instance available")
             return
             
         distance_cm = distance_cm * 3 #calibrate distance
         if speed is None:
             speed = self.speed
-        self.get_logger().info(f"Starting forward movement: distance={distance_cm}cm, speed={speed}")
+        if self.logger:
+            self.logger.info(f"Starting forward movement: distance={distance_cm}cm, speed={speed}")
         
         SPEED_TO_CM_PER_SEC = 0.7  # Needs calibration
         move_time = distance_cm / (speed * SPEED_TO_CM_PER_SEC)
-        self.get_logger().info(f"Calculated move time: {move_time:.2f} seconds")
+        if self.logger:
+            self.logger.info(f"Calculated move time: {move_time:.2f} seconds")
         elapsed_time = 0
         
         while elapsed_time < move_time:
@@ -117,9 +124,11 @@ class PicarActions(Node):
             sleep(0.1)
             elapsed_time += 0.1
             if elapsed_time % 1 < 0.1:
-                self.get_logger().info(f"Moving... elapsed={elapsed_time:.1f}s")
+                if self.logger:
+                    self.logger.info(f"Moving... elapsed={elapsed_time:.1f}s")
         
-        self.get_logger().info("Movement complete, stopping")
+        if self.logger:
+            self.logger.info("Movement complete, stopping")
         self.car.stop()
 
     # def move_forward(car):
@@ -138,16 +147,19 @@ class PicarActions(Node):
     def move_backward_this_way(self, distance_cm=20, speed=None):
         """Move backward a specific distance at given speed"""
         if self.car is None:
-            self.get_logger().warning("Cannot move backward: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot move backward: No car instance available")
             return
             
         if speed is None:
             speed = self.speed
-        self.get_logger().info(f"Starting backward movement: distance={distance_cm}cm, speed={speed}")
+        if self.logger:
+            self.logger.info(f"Starting backward movement: distance={distance_cm}cm, speed={speed}")
         
         SPEED_TO_CM_PER_SEC = 0.7  # Needs calibration
         move_time = distance_cm / (speed * SPEED_TO_CM_PER_SEC)
-        self.get_logger().info(f"Calculated move time: {move_time:.2f} seconds")
+        if self.logger:
+            self.logger.info(f"Calculated move time: {move_time:.2f} seconds")
         elapsed_time = 0
         
         while elapsed_time < move_time:
@@ -155,63 +167,83 @@ class PicarActions(Node):
             sleep(0.1)
             elapsed_time += 0.1
             if elapsed_time % 1 < 0.1:
-                self.get_logger().info(f"Moving... elapsed={elapsed_time:.1f}s")
+                if self.logger:
+                    self.logger.info(f"Moving... elapsed={elapsed_time:.1f}s")
         
-        self.get_logger().info("Movement complete, stopping")
+        if self.logger:
+            self.logger.info("Movement complete, stopping")
         self.car.stop()
 
     def turn_left(self):
         if self.car is None:
-            self.get_logger().warning("Cannot turn left: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot turn left: No car instance available")
             return
-        self.get_logger().info("Starting left turn sequence")
+        if self.logger:
+            self.logger.info("Starting left turn sequence")
         self.car.set_dir_servo_angle(-30)
-        self.get_logger().info("Setting wheel angle to -30°")
+        if self.logger:
+            self.logger.info("Setting wheel angle to -30°")
         self.move_forward_this_way(20)
         self.car.set_dir_servo_angle(0)
-        self.get_logger().info("Straightening wheels")
+        if self.logger:
+            self.logger.info("Straightening wheels")
         self.move_forward_this_way(20)
-        self.get_logger().info("Left turn complete")
+        if self.logger:
+            self.logger.info("Left turn complete")
 
     def turn_right(self):
         if self.car is None:
-            self.get_logger().warning("Cannot turn right: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot turn right: No car instance available")
             return
-        self.get_logger().info("Starting right turn sequence")
+        if self.logger:
+            self.logger.info("Starting right turn sequence")
         self.car.set_dir_servo_angle(30)
-        self.get_logger().info("Setting wheel angle to 30°")
+        if self.logger:
+            self.logger.info("Setting wheel angle to 30°")
         self.move_forward_this_way(20)
         self.car.set_dir_servo_angle(0)
-        self.get_logger().info("Straightening wheels")
+        if self.logger:
+            self.logger.info("Straightening wheels")
         self.move_forward_this_way(20)
-        self.get_logger().info("Right turn complete")
+        if self.logger:
+            self.logger.info("Right turn complete")
 
     def stop(self):
         if self.car is None:
-            self.get_logger().warning("Cannot stop: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot stop: No car instance available")
             return
-        self.get_logger().info("Stopping robot")
+        if self.logger:
+            self.logger.info("Stopping robot")
         self.car.stop()
 
     def turn_left_in_place(self):
         if self.car is None:
-            self.get_logger().warning("Cannot turn left in place: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot turn left in place: No car instance available")
             return
-        self.get_logger().info("Turning left in place")
+        if self.logger:
+            self.logger.info("Turning left in place")
         self.car.set_dir_servo_angle(-30)
         sleep(0.5)  # Allow time for the turn
         self.car.set_dir_servo_angle(0)  # Reset to straight
-        self.get_logger().info("Left in-place turn complete, wheels straightened")
+        if self.logger:
+            self.logger.info("Left in-place turn complete, wheels straightened")
 
     def turn_right_in_place(self):
         if self.car is None:
-            self.get_logger().warning("Cannot turn right in place: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot turn right in place: No car instance available")
             return
-        self.get_logger().info("Turning right in place")
+        if self.logger:
+            self.logger.info("Turning right in place")
         self.car.set_dir_servo_angle(30)
         sleep(0.5)  # Allow time for the turn
         self.car.set_dir_servo_angle(0)  # Reset to straight
-        self.get_logger().info("Right in-place turn complete, wheels straightened")
+        if self.logger:
+            self.logger.info("Right in-place turn complete, wheels straightened")
 
     # @with_obstacle_check
     # def come_here(car, check_distance=None):
@@ -224,10 +256,10 @@ class PicarActions(Node):
     #     while True:
     #         status = check_distance()
     #         if status == "danger":
-    #             self.get_logger().info("Obstacle too close! Backing up.")
+    #             self.logger.info("Obstacle too close! Backing up.")
     #             break
     #         elif status == "caution":
-    #             self.get_logger().info("Obstacle detected! Adjusting course.")
+    #             self.logger.info("Obstacle detected! Adjusting course.")
                 
     #         if car.Vilib.detect_obj_parameter['face'] != 0:
     #             coordinate_x = Vilib.detect_obj_parameter['face_x']
@@ -257,7 +289,8 @@ class PicarActions(Node):
         return max(min(num, max(a, b)), min(a, b))
 
     def wave_hands(self):
-        self.get_logger().info("Waving hands")
+        if self.logger:
+            self.logger.info("Waving hands")
         self.car.reset()
         self.car.set_cam_tilt_angle(20)
         for _ in range(2):
@@ -268,7 +301,8 @@ class PicarActions(Node):
         self.car.set_dir_servo_angle(0)
 
     def resist(self):
-        self.get_logger().info("Resisting")
+        if self.logger:
+            self.logger.info("Resisting")
         self.car.reset()
         self.car.set_cam_tilt_angle(10)
         for _ in range(3):
@@ -283,7 +317,8 @@ class PicarActions(Node):
         self.car.set_cam_pan_angle(0)
 
     def act_cute(self):
-        self.get_logger().info("Acting cute")
+        if self.logger:
+            self.logger.info("Acting cute")
         self.car.reset()
         self.car.set_cam_tilt_angle(-20)
         for i in range(15):
@@ -295,7 +330,8 @@ class PicarActions(Node):
         self.car.stop()
 
     def rub_hands(self):
-        self.get_logger().info("Rubbing hands")
+        if self.logger:
+            self.logger.info("Rubbing hands")
         self.car.reset()
         for i in range(5):
             self.car.set_dir_servo_angle(-6)
@@ -305,7 +341,8 @@ class PicarActions(Node):
         self.car.reset()
 
     def think(self):
-        self.get_logger().info("Thinking")
+        if self.logger:
+            self.logger.info("Thinking")
         self.car.reset()
         for i in range(11):
             self.car.set_cam_pan_angle(i*3)
@@ -320,7 +357,8 @@ class PicarActions(Node):
         self.car.reset()
 
     def keep_think(self):
-        self.get_logger().info("Keep thinking")
+        if self.logger:
+            self.logger.info("Keep thinking")
         self.car.reset()
         for i in range(11):
             self.car.set_cam_pan_angle(i*3)
@@ -329,13 +367,16 @@ class PicarActions(Node):
             sleep(.05)
         # Reset all servos to neutral position after thinking animation
         self.car.reset()
-        self.get_logger().info("Keep thinking animation complete, servos reset")
+        if self.logger:
+            self.logger.info("Keep thinking animation complete, servos reset")
 
     def shake_head(self):
         if self.car is None:
-            self.get_logger().warning("Cannot shake head: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot shake head: No car instance available")
             return
-        self.get_logger().info("Shaking head")
+        if self.logger:
+            self.logger.info("Shaking head")
         self.car.stop()
         self.car.set_cam_pan_angle(0)
         self.car.set_cam_pan_angle(60)
@@ -358,9 +399,11 @@ class PicarActions(Node):
 
     def nod(self):
         if self.car is None:
-            self.get_logger().warning("Cannot nod: No car instance available")
+            if self.logger:
+                self.logger.warning("Cannot nod: No car instance available")
             return
-        self.get_logger().info("Nodding")
+        if self.logger:
+            self.logger.info("Nodding")
         self.car.reset()
         self.car.set_cam_tilt_angle(0)
         self.car.set_cam_tilt_angle(5)
@@ -375,7 +418,8 @@ class PicarActions(Node):
 
 
     def depressed(self):
-        self.get_logger().info("Acting depressed")
+        if self.logger:
+            self.logger.info("Acting depressed")
         self.car.reset()
         self.car.set_cam_tilt_angle(0)
         self.car.set_cam_tilt_angle(20)
@@ -406,7 +450,8 @@ class PicarActions(Node):
         self.car.reset()
 
     def twist_body(self):
-        self.get_logger().info("Twisting body")
+        if self.logger:
+            self.logger.info("Twisting body")
         self.car.reset()
         for i in range(3):
             self.car.set_motor_speed(1, 20)
@@ -431,7 +476,8 @@ class PicarActions(Node):
             sleep(.1)
 
     def celebrate(self):
-        self.get_logger().info("Celebrating")
+        if self.logger:
+            self.logger.info("Celebrating")
         self.car.reset()
         self.car.set_cam_tilt_angle(20)
 
@@ -462,27 +508,33 @@ class PicarActions(Node):
         sleep(.2)
 
     def honk(self):
-        self.get_logger().info("Honking horn")
+        if self.logger:
+            self.logger.info("Honking horn")
         try:
             if hasattr(self.car, 'music'):
                 self.car.music.sound_play("../sounds/car-double-horn.wav", 100)
                 while self.car.music.pygame.mixer.music.get_busy():
                     time.sleep(0.1)
             else:
-                self.get_logger().warn("Warning: Car does not have audio capabilities")
+                if self.logger:
+                    self.logger.warn("Warning: Car does not have audio capabilities")
         except Exception as e:
-            self.get_logger().info(f"Error playing honk sound: {e}")
+            if self.logger:
+                self.logger.info(f"Error playing honk sound: {e}")
 
     def start_engine(self):
-        self.get_logger().info("Starting engine")
+        if self.logger:
+            self.logger.info("Starting engine")
         try:
             if hasattr(self.car, 'music'):
                 self.car.music.sound_play("../sounds/car-start-engine.wav", 50)
                 while self.car.music.pygame.mixer.music.get_busy():
                     time.sleep(0.1)
             else:
-                self.get_logger().warn("Warning: Car does not have audio capabilities")
+                if self.logger:
+                    self.logger.warn("Warning: Car does not have audio capabilities")
         except Exception as e:
-            self.get_logger().info(f"Error playing engine sound: {e}")
+            if self.logger:
+                self.logger.info(f"Error playing engine sound: {e}")
 
     # Actions dictionary removed - methods are now instance methods called directly

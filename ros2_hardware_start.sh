@@ -7,6 +7,15 @@ set -e  # Exit on any error
 
 echo "🤖 Starting Nevil 2.0 with hardware permissions..."
 
+# Clean up any ghost ROS2 nodes from previous sessions
+echo "🧹 Cleaning up ROS2 environment..."
+pkill -f "ros2 run" 2>/dev/null || true
+pkill -f "ros2 launch" 2>/dev/null || true
+ros2 daemon stop 2>/dev/null || true
+sleep 1
+ros2 daemon start 2>/dev/null || true
+echo "✅ ROS2 cleanup complete"
+
 # Check if running as root or with sudo
 if [ "$EUID" -eq 0 ]; then
     echo "✅ Running with root privileges"

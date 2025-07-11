@@ -7,7 +7,7 @@ import threading
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
-from rclpy.callback_groups import RealtimeCallbackGroup, MutuallyExclusiveCallbackGroup
+from rclpy.callback_groups import ReentrantCallbackGroup, MutuallyExclusiveCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from geometry_msgs.msg import Twist, PoseStamped

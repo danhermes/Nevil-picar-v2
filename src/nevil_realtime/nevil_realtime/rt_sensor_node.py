@@ -5,7 +5,7 @@ import time
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from rclpy.callback_groups import RealtimeCallbackGroup
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import Range
 from std_msgs.msg import Float32MultiArray, Header
@@ -27,7 +27,7 @@ class RTSensorNode(Node):
         super().__init__('rt_sensor_node')
         
         # Create a realtime callback group
-        self.rt_callback_group = RealtimeCallbackGroup()
+        self.rt_callback_group = ReentrantCallbackGroup()
         
         # Declare parameters
         self.declare_parameter(

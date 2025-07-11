@@ -5,7 +5,7 @@ import time
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
+from rclpy.callback_groups import MutuallyExclusiveCallbackGroup, ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Range
@@ -29,7 +29,7 @@ class RTMotorControlNode(Node):
         super().__init__('rt_motor_control_node')
         
         # Create a realtime callback group
-        self.rt_callback_group = RealtimeCallbackGroup()
+        self.rt_callback_group = ReentrantCallbackGroup()
         
         # Declare parameters
         self.declare_parameter(

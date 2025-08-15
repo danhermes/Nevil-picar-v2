@@ -1,0 +1,27 @@
+# Nevil-picar v2.0 Python Dependencies
+# Core computer vision
+opencv-python>=4.0.0
+
+# Audio processing
+pygame>=2.0.0
+
+# Hardware interfaces (these may need to be installed separately on Raspberry Pi)
+# robot-hat  # Install via: pip install robot-hat
+# picar-x    # Install via: pip install picar-x
+
+# Scientific computing
+numpy>=1.20.0
+
+# OpenAI API (for AI interface)
+openai>=1.0.0
+
+# Environment management
+python-dotenv>=0.19.0
+
+# Audio processing
+# Note: Some audio dependencies may require system packages:
+# sudo apt-get install portaudio19-dev python3-pyaudio
+pyaudio>=0.2.11
+
+# Optional: Jupyter for development/debugging
+# jupyter>=1.0.0

@@ -18,7 +18,7 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
-# Install Python scripts
+# Install Python package with scripts
 ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS

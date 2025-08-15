@@ -286,7 +286,10 @@ class RTMotorControlNode(Node):
         
         # If we haven't received a command in 1 second, stop the robot
         if time_since_last_cmd.nanoseconds > 1e9:
-            self.get_logger().warn('Command timeout, stopping robot')
+            # Only log timeout once per session to avoid spam
+            if not getattr(self, '_timeout_logged', False):
+                self.get_logger().warn('Command timeout - motor safety stop active (further timeouts suppressed)')
+                self._timeout_logged = True
             self.hardware_interface.stop()
     
     def update_latency_stats(self, latency):

@@ -8,7 +8,7 @@ package_path = os.path.join(os.path.dirname(__file__), '..', 'python3.11', 'site
 sys.path.insert(0, package_path)
 
 # Import and run the actual script
-from nevil_bringup.scripts.hardware_init import main
+from nevil_bringup.hardware_init_script import main
 
 if __name__ == '__main__':
     main()

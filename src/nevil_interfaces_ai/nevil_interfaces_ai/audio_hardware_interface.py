@@ -326,58 +326,110 @@ class AudioHardwareInterface:
                         
                         self.logger.debug(f'TTS audio saved to {output_file}')
                         
-                        # Play the audio file using robot_hat Music if available
-                        if self.music_player:
-                            try:
-                                self.logger.debug('Playing audio with Robot HAT Music')
-                                
-                                #VOLUME MAX
-                                self.music_player.pygame.mixer.music.set_volume(1.0)
-
-                                self.music_player.music_play(output_file)
-                                
-                                # Wait for playback with timeout to prevent hanging
-                                max_wait_time = 30  # Maximum 30 seconds
-                                wait_start = time.time()
-                                while self.music_player.pygame.mixer.music.get_busy():
-                                    if time.time() - wait_start > max_wait_time:
-                                        self.logger.warning('Audio playback timeout, stopping')
-                                        break
-                                    time.sleep(0.1)
-                                
-                                self.music_player.music_stop()
-                                self.logger.debug('Audio playback completed')
-                            except Exception as e:
-                                self.logger.error(f'Failed to play with Robot HAT Music: {e}')
-                                # Fallback to pygame
+                        # Use non-realtime aplay command to prevent ALSA underruns
+                        try:
+                            self.logger.debug('Playing audio with aplay (non-realtime)')
+                            
+                            # Use aplay with our ALSA config - most stable approach
+                            import subprocess
+                            
+                            # Create environment with our ALSA config
+                            play_env = os.environ.copy()
+                            if os.path.exists('/tmp/nevil_asoundrc'):
+                                play_env['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
+                            
+                            # Use aplay with larger buffer sizes to prevent underruns
+                            cmd = [
+                                'aplay', 
+                                '-D', 'default',  # Use default device from our config
+                                '--buffer-size=16384',
+                                '--period-size=2048',
+                                output_file
+                            ]
+                            
+                            # Run aplay and wait for completion
+                            result = subprocess.run(cmd, env=play_env, capture_output=True, text=True, timeout=30)
+                            
+                            if result.returncode == 0:
+                                self.logger.debug('Aplay audio playback completed successfully')
+                            else:
+                                self.logger.warning(f'Aplay failed: {result.stderr}')
+                                # Fallback to pygame if aplay fails
+                                raise Exception(f"Aplay failed: {result.stderr}")
+                            
+                        except Exception as aplay_error:
+                            self.logger.warning(f'Aplay failed, falling back to robot_hat Music: {aplay_error}')
+                            
+                            # Fallback to robot_hat Music if aplay fails
+                            if self.music_player:
                                 try:
-                                    import pygame
-                                    pygame.mixer.quit()  # Clean up any existing mixer
-                                    pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
-                                    pygame.mixer.music.load(output_file)
-                                    pygame.mixer.music.play()
+                                    self.logger.debug('Fallback: Playing audio with Robot HAT Music')
                                     
-                                    # Wait with timeout
-                                    max_wait_time = 30
+                                    #VOLUME MAX
+                                    self.music_player.pygame.mixer.music.set_volume(1.0)
+
+                                    self.music_player.music_play(output_file)
+                                    
+                                    # Wait for playback with timeout to prevent hanging
+                                    max_wait_time = 30  # Maximum 30 seconds
                                     wait_start = time.time()
-                                    while pygame.mixer.music.get_busy():
+                                    while self.music_player.pygame.mixer.music.get_busy():
                                         if time.time() - wait_start > max_wait_time:
-                                            self.logger.warning('Pygame playback timeout, stopping')
-                                            pygame.mixer.music.stop()
+                                            self.logger.warning('Audio playback timeout, stopping')
                                             break
                                         time.sleep(0.1)
                                     
-                                    pygame.mixer.quit()
-                                    self.logger.debug('Pygame fallback playback completed')
-                                except Exception as pygame_error:
-                                    self.logger.error(f'Pygame fallback also failed: {pygame_error}')
+                                    self.music_player.music_stop()
+                                    self.logger.debug('Robot HAT Music playback completed')
+                                except Exception as e:
+                                    self.logger.error(f'Failed to play with Robot HAT Music: {e}')
+                                    # Fallback to pygame
+                                    try:
+                                        import pygame
+                                        import os
+                                        # Configure pygame to use HifiBerry DAC (card 3) with proper ALSA config
+                                        os.environ['SDL_AUDIODRIVER'] = 'alsa'
+                                        os.environ['ALSA_CARD'] = '3'
+                                        os.environ['ALSA_DEVICE'] = '0'
+                                        # Use our custom ALSA config if available
+                                        if os.path.exists('/tmp/nevil_asoundrc'):
+                                            os.environ['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
+                                        pygame.mixer.quit()  # Clean up any existing mixer
+                                        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=4096)
+                                        pygame.mixer.music.load(output_file)
+                                        pygame.mixer.music.set_volume(1.0)
+                                        pygame.mixer.music.play()
+                                        
+                                        # Wait with timeout
+                                        max_wait_time = 30
+                                        wait_start = time.time()
+                                        while pygame.mixer.music.get_busy():
+                                            if time.time() - wait_start > max_wait_time:
+                                                self.logger.warning('Pygame playback timeout, stopping')
+                                                pygame.mixer.music.stop()
+                                                break
+                                            time.sleep(0.1)
+                                        
+                                        pygame.mixer.quit()
+                                        self.logger.debug('Pygame fallback playback completed')
+                                    except Exception as pygame_error:
+                                        self.logger.error(f'Pygame fallback also failed: {pygame_error}')
                         else:
                             # Use pygame as fallback
                             try:
                                 import pygame
+                                import os
+                                # Configure pygame to use HifiBerry DAC (card 3) with proper ALSA config
+                                os.environ['SDL_AUDIODRIVER'] = 'alsa'
+                                os.environ['ALSA_CARD'] = '3'
+                                os.environ['ALSA_DEVICE'] = '0'
+                                # Use our custom ALSA config if available
+                                if os.path.exists('/tmp/nevil_asoundrc'):
+                                    os.environ['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
                                 pygame.mixer.quit()  # Clean up any existing mixer
-                                pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+                                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=4096)
                                 pygame.mixer.music.load(output_file)
+                                pygame.mixer.music.set_volume(1.0)
                                 pygame.mixer.music.play()
                                 
                                 # Wait with timeout
@@ -719,10 +771,22 @@ class AudioHardwareInterface:
                     except Exception as e:
                         self.logger.error(f'Failed to clean up pyttsx3 TTS: {e}')
                 
+                # Clean up microphone device (critical for USB audio device release)
+                if self.microphone:
+                    try:
+                        # Force close the microphone device to release hardware
+                        if hasattr(self.microphone, '__del__'):
+                            self.microphone.__del__()
+                        self.microphone = None
+                        self.logger.info('Microphone device released')
+                    except Exception as e:
+                        self.logger.error(f'Failed to release microphone: {e}')
+                
                 # Clean up PyAudio
                 if self.audio:
                     try:
                         self.audio.terminate()
+                        self.logger.info('PyAudio terminated')
                     except Exception as e:
                         self.logger.error(f'Failed to clean up PyAudio: {e}')
         except Exception as e:

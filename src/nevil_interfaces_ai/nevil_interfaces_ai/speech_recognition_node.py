@@ -380,6 +380,8 @@ class SpeechRecognitionNode(Node):
 
 
 def main(args=None):
+    import signal
+    
     rclpy.init(args=args)
     
     speech_recognition_node = SpeechRecognitionNode()
@@ -387,6 +389,18 @@ def main(args=None):
     # Use a MultiThreadedExecutor to enable processing multiple callbacks in parallel
     executor = MultiThreadedExecutor()
     executor.add_node(speech_recognition_node)
+    
+    # Set up signal handlers for proper cleanup
+    def signal_handler(signum, frame):
+        speech_recognition_node.get_logger().info(f'Received signal {signum}, shutting down...')
+        speech_recognition_node.shutdown()
+        executor.shutdown()
+        speech_recognition_node.destroy_node()
+        rclpy.shutdown()
+        exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
     
     try:
         executor.spin()

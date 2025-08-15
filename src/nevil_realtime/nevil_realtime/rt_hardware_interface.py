@@ -106,18 +106,18 @@ class PhysicalHardwareInterface(HardwareInterface):
             import sys
             import os
             
-            # Add both v1.0 directories to the Python path
-            v1_path = os.path.join(os.path.dirname(__file__), '../../../v1.0')
-            picarlibs_path = os.path.join(v1_path, 'picarlibs')
-            helpers_path = os.path.join(v1_path, 'helpers')
+            # # Add both v1.0 directories to the Python path
+            # v1_path = os.path.join(os.path.dirname(__file__), '../../../v1.0')
+            # picarlibs_path = os.path.join(v1_path, 'picarlibs')
+            # helpers_path = os.path.join(v1_path, 'helpers')
             
-            sys.path.append(picarlibs_path)
-            sys.path.append(helpers_path)
-            sys.path.append(v1_path)
+            # sys.path.append(picarlibs_path)
+            # sys.path.append(helpers_path)
+            # sys.path.append(v1_path)
             
-            from picarx import Picarx
-            # Import v1.0 action helper functions
-            from action_helper import move_forward_this_way, move_backward_this_way, turn_left, turn_right, stop
+            # Import Picarx from navigation module and action helper functions
+            from nevil_navigation.picarx import Picarx
+            from .action_helper import move_forward_this_way, move_backward_this_way, turn_left, turn_right, stop
             
             with self.hardware_mutex:
                 self.logger.info('Initializing PiCar-X hardware with v1.0 action helper...')
@@ -131,7 +131,7 @@ class PhysicalHardwareInterface(HardwareInterface):
                 self.stop_action = stop
                 
                 self.initialized = True
-                self.logger.info('PiCar-X hardware initialized successfully with v1.0 integration')
+                self.logger.info('PiCar-X hardware initialized successfully with action_helper')
                 return True
         except Exception as e:
             self.logger.error(f'Failed to initialize PiCar-X hardware: {e}')
@@ -217,7 +217,8 @@ class PhysicalHardwareInterface(HardwareInterface):
         if not self.initialized:
             return
         
-        self.logger.info('Stopping all motors')
+        # Changed from info to debug to reduce log spam
+        self.logger.debug('Stopping all motors')
         try:
             with self.hardware_mutex:
                 self.picar.stop()
@@ -309,7 +310,8 @@ class SimulationHardwareInterface(HardwareInterface):
         """Stop all motors in simulation."""
         self.left_motor_speed = 0
         self.right_motor_speed = 0
-        self.logger.info('Simulation: Stopping all motors')
+        # Changed from info to debug to reduce log spam  
+        self.logger.debug('Simulation: Stopping all motors')
     
     def reset(self) -> None:
         """Reset simulation to default state."""

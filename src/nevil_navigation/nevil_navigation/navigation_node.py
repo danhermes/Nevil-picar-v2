@@ -1,4 +1,4 @@
-tion#!/usr/bin/env python3
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -73,36 +73,22 @@ class NavigationNode(Node):
         
         # Initialize PiCar hardware using v1.0 approach
         try:
-            self.get_logger().info("Initializing PiCar hardware using v1.0 approach")
+            self.get_logger().info("Using ROS2 communication with rt_motor_control_node (no direct hardware)")
             
-            # Check if we're on a Raspberry Pi or have GPIO access
-            import platform
-            if platform.machine() not in ['armv7l', 'aarch64'] and not os.path.exists('/dev/gpiomem'):
-                raise RuntimeError("Not running on Raspberry Pi hardware")
-                       
-            self.get_logger().info("Creating Picarx instance (v1.0 will handle reset_mcu internally)")
-
-            from robot_hat import reset_mcu       
-            reset_mcu()
-     
-            # Check if Picarx class is available
-            #if Picarx is None:
-            #    raise ImportError("Picarx class not available")
+            # Don't initialize hardware directly - communicate via ROS topics
+            # The rt_motor_control_node handles all hardware interactions
+            self.car = None  # No direct hardware access
             
-            self.car = Picarx()
-
-            # Add safety distance attributes like v1.0
-            self.car.SafeDistance = 30  # 30cm safe distance
-            self.car.DangerDistance = 15  # 15cm danger distance
+            # Set default parameters without hardware initialization
             self.speed = 30  # Set default speed
             self.DEFAULT_HEAD_TILT = 20
 
-            self.get_logger().info("PiCar hardware initialized successfully using v1.0 implementation")
+            self.get_logger().info("Navigation node configured for ROS2 communication")
 
-            # Initialize PicarAction
-            self.picar_actions = PicarActions(car_instance=self.car)
+            # Initialize PicarAction without hardware (simulation mode actions)
+            self.picar_actions = PicarActions(car_instance=None)
 
-            self.get_logger().info("PicarActions hardware initialized successfully.")
+            self.get_logger().info("PicarActions initialized for ROS2 communication.")
 
 
         except Exception as e:
@@ -283,38 +269,65 @@ class NavigationNode(Node):
             self.get_logger().error(f'Error processing action command: {e}')
     
     def execute_action(self, action_type, action_data):
-        """Execute a specific action using PicarActions"""
-        """ Refer to Nevil /v1.0 regarding actions"""
-        self.get_logger().info(f'Executing PicarActions action type: {action_type}.')
+        """Execute a specific action using ROS2 communication to rt_motor_control_node"""
+        self.get_logger().info(f'Executing action via ROS2: {action_type}.')
         
-        # Check if hardware is available
-        if self.car is None:
-            self.get_logger().warning(f'Cannot execute action {action_type}: Hardware not available (simulation mode)')
-            return
+        # Send movement commands via ROS topics to rt_motor_control_node
+        # This bypasses direct hardware access and uses the hardware abstraction layer
         
-        # Actions dictionary mapping command names to PicarActions methods
-        actions_dict = {
-            "forward": self.picar_actions.move_forward_this_way,
-            "backward": self.picar_actions.move_backward_this_way,
-            "left": self.picar_actions.turn_left,
-            "right": self.picar_actions.turn_right,
-            "stop": self.picar_actions.stop,
-            "twist_left": self.picar_actions.turn_left_in_place,
-            "twist_right": self.picar_actions.turn_right_in_place,
-            "shake_head": self.picar_actions.shake_head,
-            "nod": self.picar_actions.nod,
-            "wave_hands": self.picar_actions.wave_hands,
-            "resist": self.picar_actions.resist,
-            "act_cute": self.picar_actions.act_cute,
-            "rub_hands": self.picar_actions.rub_hands,
-            "think": self.picar_actions.think,
-            "twist_body": self.picar_actions.twist_body,
-            "celebrate": self.picar_actions.celebrate,
-            "depressed": self.picar_actions.depressed,
-            "keep_think": self.picar_actions.keep_think,
-            "honk": self.picar_actions.honk,
-            "start_engine": self.picar_actions.start_engine
-        }
+        # Handle movement actions via ROS2 cmd_vel publishing to rt_motor_control_node
+        if action_type in ["forward", "backward", "left", "right", "stop"]:
+            self._execute_movement_action(action_type, action_data)
+        
+        # Handle gesture/behavior actions (placeholder for now)
+        elif action_type in ["shake_head", "nod", "wave_hands", "resist", "act_cute", "rub_hands", 
+                           "think", "twist_body", "celebrate", "depressed", "keep_think", "honk", "start_engine"]:
+            self._execute_gesture_action(action_type, action_data)
+        
+        else:
+            self.get_logger().warning(f'Unknown action type: {action_type}')
+
+    def _execute_movement_action(self, action_type, action_data):
+        """Execute movement actions by publishing cmd_vel messages to rt_motor_control_node"""
+        from geometry_msgs.msg import Twist
+        
+        cmd = Twist()
+        duration = action_data.get('duration', 2.0)  # Default 2 seconds
+        
+        if action_type == "forward":
+            cmd.linear.x = 0.3  # Forward speed
+            cmd.angular.z = 0.0
+        elif action_type == "backward":
+            cmd.linear.x = -0.3  # Backward speed  
+            cmd.angular.z = 0.0
+        elif action_type == "left":
+            cmd.linear.x = 0.0
+            cmd.angular.z = 0.5  # Turn left
+        elif action_type == "right":
+            cmd.linear.x = 0.0
+            cmd.angular.z = -0.5  # Turn right
+        elif action_type == "stop":
+            cmd.linear.x = 0.0
+            cmd.angular.z = 0.0
+            
+        # Publish the movement command
+        self.cmd_vel_publisher.publish(cmd)
+        self.get_logger().info(f'✅ Published cmd_vel for {action_type}: linear.x={cmd.linear.x}, angular.z={cmd.angular.z}')
+        
+        # For non-stop actions, schedule a stop command after the duration
+        if action_type != "stop":
+            self.create_timer(duration, lambda: self._publish_stop_command())
+    
+    def _execute_gesture_action(self, action_type, action_data):
+        """Execute gesture/behavior actions - placeholder for now"""
+        self.get_logger().info(f'✅ Gesture action {action_type} executed (placeholder - no physical implementation yet)')
+        
+    def _publish_stop_command(self):
+        """Publish a stop command"""
+        from geometry_msgs.msg import Twist
+        cmd = Twist()  # All zeros = stop
+        self.cmd_vel_publisher.publish(cmd)
+        self.get_logger().info('✅ Published stop command')
         
         # Log the action mapping for debugging
         self.get_logger().info(f'Action mapping: {action_type} -> {actions_dict.get(action_type, "NOT_FOUND")}')

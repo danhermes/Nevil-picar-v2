@@ -8,7 +8,7 @@ from typing import Optional, Callable, Any
 
 import rclpy
 from rclpy.node import Node
-from rclpy.callback_groups import RealtimeCallbackGroup
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
 class RTContext:
@@ -236,7 +236,7 @@ class RTNode(Node):
         self.rt_context = RTContext(self, priority)
         
         # Create a real-time callback group
-        self.rt_callback_group = RealtimeCallbackGroup()
+        self.rt_callback_group = ReentrantCallbackGroup()
         
         # Set the thread priority
         self.rt_context.set_thread_priority()

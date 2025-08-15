@@ -46,7 +46,7 @@ class AsyncNevilNavigationAPI:
             self.should_spin = False
         
         # Create callback groups
-        self.rt_callback_group = RealtimeCallbackGroup()
+        self.rt_callback_group = ReentrantCallbackGroup()
         self.regular_callback_group = MutuallyExclusiveCallbackGroup()
         
         # Create QoS profiles

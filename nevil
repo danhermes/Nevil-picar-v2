@@ -40,89 +40,97 @@ source ./nevil2env/bin/activate
 source ~/ros2_humble/install/setup.bash
 source ~/Nevil-picar-v2/install/setup.bash
 
-# Set ALSA environment for HifiBerry DAC (permanent audio fix)
-export ALSA_CARD=3
-export ALSA_DEVICE=0
-export ALSA_SUBDEVICE=0
+# # Set ALSA environment for HifiBerry DAC (permanent audio fix)
+# export ALSA_CARD=3
+# export ALSA_DEVICE=0
+# export ALSA_SUBDEVICE=0
 
 # Set SDL audio driver for pygame to use HifiBerry DAC
-export SDL_AUDIODRIVER=alsa
+#export SDL_AUDIODRIVER=alsa
 
 # Configure ALSA for Nevil audio system
 setup_alsa_config() {
     echo "🔊 Setting up ALSA configuration for HifiBerry DAC + USB microphone..."
     
-    # Create temporary ALSA config that overrides system config
-    cat > /tmp/nevil_asoundrc << 'EOF'
-# Nevil Audio System Configuration
-# HifiBerry DAC (card 3) for output, USB Sound Device (card 4) for input
+#     # Create temporary ALSA config that overrides system config
+#     cat > /tmp/nevil_asoundrc << 'EOF'
+# # Nevil Audio System Configuration
+# # HifiBerry DAC (card 3) for output, USB Sound Device (card 4) for input
 
-# Default PCM device - use dmix/dsnoop to prevent underruns
-pcm.!default {
-    type asym
-    playback.pcm "dmixed"     # Use dmix for playback to prevent conflicts
-    capture.pcm "dsnooped"    # Use dsnoop for capture
-}
 
-# Control device for volume/mixer
-ctl.!default {
-    type hw
-    card 3  # HifiBerry DAC for controls
-}
+# # Default PCM device - use dmix/dsnoop to prevent underruns
+# pcm.!default {
+#     type asym
+#     playback.pcm {
+#         type plug
+#         slave.pcm "dmixed"
+#     }
+#     capture.pcm {
+#         type plug
+#         slave.pcm "dsnooped"
+#     }
+# }
 
-# Explicit playback device for TTS
-pcm.speaker {
-    type hw
-    card 3
-    device 0
-}
+# # Control device for volume/mixer
+# ctl.!default {
+#     type hw
+#     card 3  # HifiBerry DAC for controls
+# }
 
-# Explicit capture device for STT
-pcm.microphone {
-    type hw
-    card 4
-    device 0
-}
+# # Explicit playback device for TTS
+# pcm.speaker {
+#     type hw
+#     card 3
+#     device 0
+# }
 
-# Dmix device for multiple audio streams - optimized buffer sizes
-pcm.dmixed {
-    type dmix
-    ipc_key 1024
-    slave {
-        pcm "hw:3,0"
-        rate 44100
-        channels 2
-        period_time 0
-        period_size 2048    # Larger period size to prevent underruns
-        buffer_size 16384   # Much larger buffer to handle latency spikes
-        periods 8           # More periods for smoother playback
-    }
-    bindings {
-        0 0
-        1 1
-    }
-}
+# # Explicit capture device for STT
+# pcm.microphone {
+#     type hw
+#     card 4
+#     device 0
+# }
 
-# Dsnoop device for capture - optimized for speech recognition
-pcm.dsnooped {
-    type dsnoop
-    ipc_key 2048
-    slave {
-        pcm "hw:4,0"        # USB microphone
-        rate 16000          # Standard rate for speech recognition
-        channels 1          # Mono for speech
-        period_time 0
-        period_size 1024    # Good for real-time speech capture
-        buffer_size 8192    # Sufficient buffer for speech processing
-        periods 4
-    }
-}
-EOF
+# # Dmix device for multiple audio streams - optimized buffer sizes
+# pcm.dmixed {
+#     type dmix
+#     ipc_key 1024
+#     slave {
+#         pcm "hw:3,0"
+#         rate 44100
+#         channels 2
+#         period_time 0
+#         period_size 2048    # Larger period size to prevent underruns
+#         buffer_size 16384   # Much larger buffer to handle latency spikes
+#         periods 8           # More periods for smoother playback
+#     }
+#     bindings {
+#         0 0
+#         1 1
+#     }
+# }
+
+# # Dsnoop device for capture - optimized for speech recognition
+# pcm.dsnooped {
+#     type dsnoop
+#     ipc_key 2048
+#     slave {
+#         pcm "hw:2,0"        # USB microphone
+#         rate 16000          # Standard rate for speech recognition
+#         channels 1          # Mono for speech
+#         period_time 0
+#         period_size 1024    # Good for real-time speech capture
+#         buffer_size 8192    # Sufficient buffer for speech processing
+#         periods 4
+#     }
+# }
+# EOF
 
     # Use our custom ALSA config
-    export ALSA_CONFIG_FILE="/tmp/nevil_asoundrc"
-    export ALSA_PCM_CARD=3
-    export ALSA_PCM_DEVICE=0
+    #export ALSA_CONFIG_FILE="/tmp/nevil_asoundrc"
+    export ALSA_CONFIG_PATH="/etc/asound.conf"
+    #export ALSA_PCM_CARD=3
+    #export ALSA_PCM_DEVICE=0
     
     # Additional ALSA environment variables to prevent underruns
     export ALSA_BUFFER_SIZE=16384
@@ -130,7 +138,7 @@ EOF
     export ALSA_PERIODS=8
     
     # Pygame audio settings for better buffering
-    export SDL_AUDIODRIVER=alsa
+    #export SDL_AUDIODRIVER=alsa
     export SDL_AUDIO_BUFFER_SIZE=4096
     
     echo "✅ ALSA configuration ready with optimized buffers"

@@ -162,7 +162,8 @@ class AudioHardwareInterface:
                     
                     # Try to use the default microphone
                     try:
-                        self.microphone = sr.Microphone()
+                        self.microphone = sr.Microphone(device_index=None, #default device 
+                              chunk_size=self.chunk_size, sample_rate=self.sample_rate)
                         self.logger.info('Microphone initialized successfully')
                     except Exception as e:
                         self.logger.error(f'Failed to initialize microphone: {e}')

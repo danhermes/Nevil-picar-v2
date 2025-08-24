@@ -65,10 +65,10 @@ class HardwareInit(Node):
         self.initialize_servos()
         
         # Initialize sensors
-        self.initialize_sensors()
+        #self.initialize_sensors()
         
         # Initialize camera
-        self.initialize_camera()
+        #self.initialize_camera()
         
         # Initialize audio
         self.initialize_audio()

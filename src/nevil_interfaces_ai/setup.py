@@ -27,6 +27,10 @@ setup(
     install_requires=[
         'setuptools',
         'python-dotenv',
+        'rclpy',
+        'std_msgs',
+        'geometry_msgs',
+        'action_msgs',
     ],
     zip_safe=True,
     maintainer='user',

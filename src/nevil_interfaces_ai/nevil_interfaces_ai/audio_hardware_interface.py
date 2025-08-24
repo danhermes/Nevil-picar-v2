@@ -47,7 +47,7 @@ def get_env_var(name, default=None):
 # Import required libraries, with fallback for when they're not available
 try:
     import speech_recognition as sr
-    import pyaudio
+    #import pyaudio
     import wave, sys
     
     # Try to import robot_hat Music and Pin for audio playback if available
@@ -56,12 +56,12 @@ try:
         ROBOT_HAT_AVAILABLE = True
     except ImportError as e:
         ROBOT_HAT_AVAILABLE = False
-        # Import pyttsx3 as fallback if robot_hat is not available
-        try:
-            import pyttsx3
-            PYTTSX3_AVAILABLE = True
-        except ImportError:
-            PYTTSX3_AVAILABLE = False
+        # # Import pyttsx3 as fallback if robot_hat is not available
+        # try:
+        #     import pyttsx3
+        #     PYTTSX3_AVAILABLE = True
+        # except ImportError:
+        #     PYTTSX3_AVAILABLE = False
     
     # Try to import Whisper if available
     try:
@@ -74,7 +74,7 @@ try:
 except ImportError:
     WHISPER_AVAILABLE = False
     ROBOT_HAT_AVAILABLE = False
-    PYTTSX3_AVAILABLE = False
+    #PYTTSX3_AVAILABLE = False
     AUDIO_LIBS_AVAILABLE = False
 
 def constrain(x, min_val, max_val):
@@ -125,6 +125,13 @@ class AudioHardwareInterface:
         self.simulation_mode = False
         self.speech_loaded = False
         self.tts_file = None
+        self.audio = None
+
+        # Configure default audio parameters
+        self.sample_rate = self.DEFAULT_SAMPLE_RATE
+        self.channels = self.DEFAULT_CHANNELS
+        self.chunk_size = self.DEFAULT_CHUNK_SIZE
+        self.format = None #pyaudio.paInt16 if AUDIO_LIBS_AVAILABLE else None
         
         # Load configuration from environment variables
         self.language = get_env_var('SPEECH_RECOGNITION_LANGUAGE', self.DEFAULT_LANGUAGE)
@@ -168,13 +175,15 @@ class AudioHardwareInterface:
                     
                     # Try to use the default microphone
                     try:
-                        self.microphone = sr.Microphone()
+                        self.microphone = sr.Microphone(device_index=None, #default device 
+                              chunk_size=self.chunk_size, sample_rate=self.sample_rate)
                         self.logger.info('Microphone initialized successfully')
                     except Exception as e:
                         self.logger.error(f'Failed to initialize microphone: {e}')
                         self.microphone = None
                     
                     # Initialize TTS - FIXED: Use OpenAI TTS as primary, robot_hat Music only for playback
+                    self.logger.info(f'OPENAI_AVAILABLE: {OPENAI_AVAILABLE} self.openai_api_key: {self.openai_api_key[3:][:3]}')
                     if OPENAI_AVAILABLE and self.openai_api_key:
                         # Primary TTS: OpenAI TTS
                         self.tts = "openai_tts"  # String marker for OpenAI TTS
@@ -186,9 +195,10 @@ class AudioHardwareInterface:
                                 self.logger.info('Initializing Robot HAT Music for audio playback...')
                                 # Enable robot_hat speaker switch using Pin class
                                 os.popen("pinctrl set 20 op dh")  # enable robot_hat speaker switch
+                                self.logger.info(f'os.popen: speaker switch enabled')
                                 # self.speaker_pin = Pin(20)
                                 # self.speaker_pin.on()  # Enable speaker
-                                self.music_player = Music()
+                                self.music_player = Music()#device_name="hw:3,0")
                                 self.logger.info('Robot HAT Music initialized successfully for audio playback')
                             except Exception as e:
                                 self.logger.error(f'Failed to initialize Robot HAT Music for playback: {e}')
@@ -198,33 +208,33 @@ class AudioHardwareInterface:
                             self.music_player = None
                             self.speaker_pin = None
                             self.logger.info('Robot HAT not available, will use pygame for audio playback')
-                    elif PYTTSX3_AVAILABLE:
-                        try:
-                            import pyttsx3
-                            self.tts = pyttsx3.init()
-                            self.tts.setProperty('rate', int(get_env_var('SPEECH_SYNTHESIS_RATE', 200)))
-                            self.tts.setProperty('volume', float(get_env_var('SPEECH_SYNTHESIS_VOLUME', 1.0)))
-                            self.logger.info('Pyttsx3 TTS initialized successfully')
-                            self.music_player = None
-                            self.speaker_pin = None
-                        except Exception as e:
-                            self.logger.error(f'Failed to initialize pyttsx3 TTS: {e}')
-                            self.tts = None
-                            self.music_player = None
-                            self.speaker_pin = None
+                    # elif PYTTSX3_AVAILABLE:
+                    #     try:
+                    #         import pyttsx3
+                    #         self.tts = pyttsx3.init()
+                    #         self.tts.setProperty('rate', int(get_env_var('SPEECH_SYNTHESIS_RATE', 200)))
+                    #         self.tts.setProperty('volume', float(get_env_var('SPEECH_SYNTHESIS_VOLUME', 1.0)))
+                    #         self.logger.info('Pyttsx3 TTS initialized successfully')
+                    #         self.music_player = None
+                    #         self.speaker_pin = None
+                    #     except Exception as e:
+                    #         self.logger.error(f'Failed to initialize pyttsx3 TTS: {e}')
+                    #         self.tts = None
+                    #         self.music_player = None
+                    #         self.speaker_pin = None
                     else:
                         self.logger.warn('No TTS engine available (neither OpenAI nor pyttsx3)')
                         self.tts = None
                         self.music_player = None
                         self.speaker_pin = None
                     
-                    # Initialize PyAudio for more direct audio control
-                    try:
-                        self.audio = pyaudio.PyAudio()
-                        self.logger.info('PyAudio initialized successfully')
-                    except Exception as e:
-                        self.logger.error(f'Failed to initialize PyAudio: {e}')
-                        self.audio = None
+                    # # Initialize PyAudio for more direct audio control
+                    # try:
+                    #     self.audio = pyaudio.PyAudio()
+                    #     self.logger.info('PyAudio initialized successfully')
+                    # except Exception as e:
+                    #     self.logger.error(f'Failed to initialize PyAudio: {e}')
+                    #     self.audio = None
                     
                     self.logger.info('Audio hardware initialization completed')
             except Exception as e:
@@ -240,19 +250,13 @@ class AudioHardwareInterface:
                 self.logger.warn('Running in simulation mode')
             else:
                 # FIXED: Check if we have TTS (either OpenAI or pyttsx3)
-                if self.recognizer and (self.microphone or self.audio) and self.tts:
+                if self.recognizer and self.microphone and self.tts:
                     self.simulation_mode = False
                     self.logger.info('Running in hardware mode')
                 else:
                     self.simulation_mode = True
                     self.logger.info(f'mic:{self.microphone} rec: {self.recognizer}  tts: {self.tts}')
                     self.logger.warn('Some hardware components failed to initialize, running in partial simulation mode')
-        
-        # Configure default audio parameters
-        self.sample_rate = self.DEFAULT_SAMPLE_RATE
-        self.channels = self.DEFAULT_CHANNELS
-        self.chunk_size = self.DEFAULT_CHUNK_SIZE
-        self.format = pyaudio.paInt16 if AUDIO_LIBS_AVAILABLE else None
 
     def speak_text(self, text, voice=None, wait=True):
         """
@@ -387,13 +391,13 @@ class AudioHardwareInterface:
                                     try:
                                         import pygame
                                         import os
-                                        # Configure pygame to use HifiBerry DAC (card 3) with proper ALSA config
-                                        os.environ['SDL_AUDIODRIVER'] = 'alsa'
-                                        os.environ['ALSA_CARD'] = '3'
-                                        os.environ['ALSA_DEVICE'] = '0'
+                                        # # Configure pygame to use HifiBerry DAC (card 3) with proper ALSA config
+                                        # os.environ['SDL_AUDIODRIVER'] = 'alsa'
+                                        # os.environ['ALSA_CARD'] = '3'
+                                        # os.environ['ALSA_DEVICE'] = '0'
                                         # Use our custom ALSA config if available
-                                        if os.path.exists('/tmp/nevil_asoundrc'):
-                                            os.environ['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
+                                        # if os.path.exists('/tmp/nevil_asoundrc'):
+                                        #     os.environ['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
                                         pygame.mixer.quit()  # Clean up any existing mixer
                                         pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=4096)
                                         pygame.mixer.music.load(output_file)
@@ -420,12 +424,12 @@ class AudioHardwareInterface:
                                 import pygame
                                 import os
                                 # Configure pygame to use HifiBerry DAC (card 3) with proper ALSA config
-                                os.environ['SDL_AUDIODRIVER'] = 'alsa'
-                                os.environ['ALSA_CARD'] = '3'
-                                os.environ['ALSA_DEVICE'] = '0'
+                                # os.environ['SDL_AUDIODRIVER'] = 'alsa'
+                                # os.environ['ALSA_CARD'] = '3'
+                                # os.environ['ALSA_DEVICE'] = '0'
                                 # Use our custom ALSA config if available
-                                if os.path.exists('/tmp/nevil_asoundrc'):
-                                    os.environ['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
+                                # if os.path.exists('/tmp/nevil_asoundrc'):
+                                #     os.environ['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
                                 pygame.mixer.quit()  # Clean up any existing mixer
                                 pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=4096)
                                 pygame.mixer.music.load(output_file)

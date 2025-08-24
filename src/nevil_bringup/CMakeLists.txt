@@ -34,12 +34,6 @@ install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
   ${CMAKE_INSTALL_PREFIX}/lib/${PROJECT_NAME}/nevil_cli
 )")
 
-# Install test files
-install(DIRECTORY
-  test
-  DESTINATION share/${PROJECT_NAME}
-)
-
 # Linting
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

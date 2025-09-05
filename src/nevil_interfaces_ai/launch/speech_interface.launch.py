@@ -42,7 +42,8 @@ def generate_launch_description():
         package='nevil_interfaces_ai',
         executable='speech_recognition_node',
         name='speech_recognition_node',
-        output='screen'
+        output='screen',
+        env={'ALSA_CONFIG_FILE': '/dev/null'}
     ))
     
     # Add speech synthesis node
@@ -51,7 +52,8 @@ def generate_launch_description():
         package='nevil_interfaces_ai',
         executable='speech_synthesis_node',
         name='speech_synthesis_node',
-        output='screen'
+        output='screen',
+        env={'ALSA_CONFIG_FILE': '/dev/null'}
     ))
     
     # Add AI interface node for action execution
@@ -59,7 +61,8 @@ def generate_launch_description():
         package='nevil_interfaces_ai',
         executable='ai_interface_node',
         name='ai_interface_node',
-        output='screen'
+        output='screen',
+        env={'ALSA_CONFIG_FILE': '/dev/null'}
     ))
     
     # Navigation node is handled by the main launch file to prevent GPIO conflicts

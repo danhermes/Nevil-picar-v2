@@ -30,6 +30,8 @@ def generate_launch_description():
     env = os.environ.copy()
     # Add src directory to PYTHONPATH so modules can find each other
     env['PYTHONPATH'] = f"{src_dir}:{env.get('PYTHONPATH', '')}"
+    # Add ALSA configuration to prevent assertion crashes
+    env['ALSA_CONFIG_FILE'] = '/dev/null'
     
     # Declare launch arguments
     use_online_recognition = LaunchConfiguration('use_online_recognition', default='true')

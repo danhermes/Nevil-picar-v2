@@ -5,9 +5,8 @@ from setuptools import setup
 
 package_name = 'nevil_interfaces_ai'
 
-import numpy
-print(">>> NumPy version seen by setup.py:", numpy.__version__)
-print(">>> NumPy include dir:", numpy.get_include())
+# Remove numpy import from setup.py as it causes build issues
+# numpy will be available at runtime
 
 
 setup(

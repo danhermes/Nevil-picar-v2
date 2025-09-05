@@ -39,21 +39,24 @@ def generate_launch_description():
     ld.add_action(ExecuteProcess(
         cmd=['python3', os.path.join(scripts_dir, 'speech_recognition_node.py')],
         name='speech_recognition_node',
-        output='screen'
+        output='screen',
+        env={'ALSA_CONFIG_FILE': '/dev/null'}
     ))
     
     # Add speech synthesis node using ExecuteProcess
     ld.add_action(ExecuteProcess(
         cmd=['python3', os.path.join(scripts_dir, 'speech_synthesis_node.py')],
         name='speech_synthesis_node',
-        output='screen'
+        output='screen',
+        env={'ALSA_CONFIG_FILE': '/dev/null'}
     ))
     
     # Add dialog manager node using ExecuteProcess
     ld.add_action(ExecuteProcess(
         cmd=['python3', os.path.join(scripts_dir, 'dialog_manager_node.py')],
         name='dialog_manager_node',
-        output='screen'
+        output='screen',
+        env={'ALSA_CONFIG_FILE': '/dev/null'}
     ))
     
     return ld

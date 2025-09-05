@@ -40,6 +40,21 @@ source ./nevil2env/bin/activate
 source ~/ros2_humble/install/setup.bash
 source ~/Nevil-picar-v2/install/setup.bash
 
+#Set Pulse device for Mic
+# NOTE: PyAudio uses PortAudio, which opens ALSA's "default" device. On Bookworm,
+# ALSA "default" is routed through the Pulse/PipeWire shim. Show Pyaudio default input device info:
+# python3 -c "import pyaudio; p=pyaudio.PyAudio(); print('Default:', p.get_default_input_device_info() if p.get_default_input_device_info() else 'None'); p.terminate()"
+#That means PyAudio's default input (always shown as index 7, name 'default') actually maps to whatever
+# Pulse has chosen as its Default Source. By default Pulse often grabs a monitor
+# (speaker loopback) instead of the real USB mic. To inspect available sources:
+#   pactl list short sources
+# and to set the USB mic as the default (persisted by WirePlumber):
+#   pactl set-default-source alsa_input.usb-C-Media_Electronics_Inc._USB_PnP_Sound_Device-00.analog-mono
+# Verify with:
+#   pactl info | grep 'Default Source'
+pactl set-default-source alsa_input.usb-C-Media_Electronics_Inc._USB_PnP_Sound_Device-00.analog-mono
+
+
 # # Set ALSA environment for HifiBerry DAC (permanent audio fix)
 # export ALSA_CARD=3
 # export ALSA_DEVICE=0

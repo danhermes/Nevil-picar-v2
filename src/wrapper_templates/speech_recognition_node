@@ -10,4 +10,6 @@ sys.path.insert(0, package_path)
 # Run the actual Python file directly
 import subprocess
 python_file = os.path.join(package_path, 'nevil_interfaces_ai', 'speech_recognition_node.py')
-subprocess.run([sys.executable, python_file] + sys.argv[1:])
+# Ensure we have a valid Python executable
+python_executable = sys.executable or 'python3'
+subprocess.run([python_executable, python_file] + sys.argv[1:])

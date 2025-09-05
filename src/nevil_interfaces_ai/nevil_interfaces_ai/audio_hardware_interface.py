@@ -169,17 +169,35 @@ class AudioHardwareInterface:
                     
                     # Initialize speech recognition with environment variables
                     self.recognizer = sr.Recognizer()
+                    self.logger.info("[Initializing Audio]sr.Recognizer()")
+
                     self.recognizer.energy_threshold = int(get_env_var('SPEECH_RECOGNITION_ENERGY_THRESHOLD', self.DEFAULT_ENERGY_THRESHOLD))
                     self.recognizer.pause_threshold = float(get_env_var('SPEECH_RECOGNITION_PAUSE_THRESHOLD', self.DEFAULT_PAUSE_THRESHOLD))
                     self.recognizer.dynamic_energy_threshold = get_env_var('SPEECH_RECOGNITION_DYNAMIC_ENERGY', self.DEFAULT_DYNAMIC_ENERGY) in ['true', 'True', '1', 'yes', 'Yes']
-                    
+                    #self.energy_threshold = 300  # minimum audio energy to consider for recording
+                    # self.dynamic_energy_threshold = True
+                    # self.dynamic_energy_adjustment_damping = 0.15
+                    # self.dynamic_energy_ratio = 1.5
+                    # self.pause_threshold = 0.8  # seconds of non-speaking audio before a phrase is considered complete
+                    # self.operation_timeout = None  # seconds after an internal operation (e.g., an API request) starts before it times out, or ``None`` for no timeout
+
+                    # self.phrase_threshold = 0.3  # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
+                    # self.non_speaking_duration = 0.5  # seconds of non-speaking audio to keep on both sides of the recording
+                    self.logger.info("[Initializing Audio]sr.Microphone")
                     # Try to use the default microphone
                     try:
-                        self.microphone = sr.Microphone(device_index=None, #default device 
+                        self.logger.info('About to create sr.Microphone...')
+                        self.microphone = sr.Microphone(device_index=1, #default device 
                               chunk_size=self.chunk_size, sample_rate=self.sample_rate)
                         self.logger.info('Microphone initialized successfully')
+                        self.logger.info(f'Microphone object: {self.microphone}')
+                        self.logger.info(f'Microphone type: {type(self.microphone)}')
                     except Exception as e:
                         self.logger.error(f'Failed to initialize microphone: {e}')
+                        self.logger.error(f'Exception type: {type(e).__name__}')
+                        import traceback
+                        self.logger.error(f'Traceback: {traceback.format_exc()}')
+                        self.logger.error('Setting microphone to None due to microphone initialization failure')
                         self.microphone = None
                     
                     # Initialize TTS - FIXED: Use OpenAI TTS as primary, robot_hat Music only for playback
@@ -194,8 +212,12 @@ class AudioHardwareInterface:
                             try:
                                 self.logger.info('Initializing Robot HAT Music for audio playback...')
                                 # Enable robot_hat speaker switch using Pin class
-                                os.popen("pinctrl set 20 op dh")  # enable robot_hat speaker switch
-                                self.logger.info(f'os.popen: speaker switch enabled')
+                                try:
+                                    os.popen("pinctrl set 20 op dh")  # enable robot_hat speaker switch
+                                    self.logger.info(f'os.popen: speaker switch enabled')
+                                except Exception as pin_error:
+                                    self.logger.warn(f'Failed to enable speaker switch: {pin_error}')
+                                
                                 # self.speaker_pin = Pin(20)
                                 # self.speaker_pin.on()  # Enable speaker
                                 self.music_player = Music()#device_name="hw:3,0")
@@ -239,24 +261,27 @@ class AudioHardwareInterface:
                     self.logger.info('Audio hardware initialization completed')
             except Exception as e:
                 self.logger.error(f'Failed to initialize audio hardware: {e}')
+                self.logger.error(f'Exception type: {type(e).__name__}')
+                self.logger.error(f'Exception details: {e}')
                 # Create mock audio interfaces for simulation if hardware initialization fails
                 self.recognizer = None
-                self.microphone = None
+                # Don't set microphone to None if it was successfully initialized
+                # self.microphone = None  # Only set to None if microphone init itself fails
                 self.tts = None
                 self.audio = None
                 self.music_player = None
                 self.speaker_pin = None
                 self.simulation_mode = True
                 self.logger.warn('Running in simulation mode')
-            else:
-                # FIXED: Check if we have TTS (either OpenAI or pyttsx3)
-                if self.recognizer and self.microphone and self.tts:
-                    self.simulation_mode = False
-                    self.logger.info('Running in hardware mode')
-                else:
-                    self.simulation_mode = True
-                    self.logger.info(f'mic:{self.microphone} rec: {self.recognizer}  tts: {self.tts}')
-                    self.logger.warn('Some hardware components failed to initialize, running in partial simulation mode')
+            # else:
+            #     # FIXED: Check if we have TTS (either OpenAI or pyttsx3)
+            #     if self.recognizer and self.microphone and self.tts:
+            #         self.simulation_mode = False
+            #         self.logger.info('Running in hardware mode')
+            #     else:
+            #         self.simulation_mode = True
+            #         self.logger.info(f'mic:{self.microphone} rec: {self.recognizer}  tts: {self.tts}')
+            #         self.logger.warn('Some hardware components failed to initialize, running in partial simulation mode')
 
     def speak_text(self, text, voice=None, wait=True):
         """
@@ -503,11 +528,22 @@ class AudioHardwareInterface:
         # In hardware mode, listen for speech with mutex protection
         try:
             with self.hardware_mutex:
+                # Double-check microphone is available before using it
+                if not self.microphone:
+                    self.logger.error('Microphone is None - cannot listen for speech')
+                    return None
+                
                 with self.microphone as source:
                     self.logger.debug('Listening for speech...')
                     if adjust_for_ambient_noise:
-                        self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
-                    
+                        try:
+                            self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                            self.logger.debug('adjust_for_ambient_noise: done')
+                        except Exception as e:
+                            self.logger.warning(f'PyAudio read failed during ambient noise adjustment: {e}')
+                            # The microphone is likely in a bad state, don't continue
+                            return None
+
                     # Set energy threshold based on environment
                     if self.recognizer.energy_threshold < self.DEFAULT_ENERGY_THRESHOLD:
                         self.recognizer.energy_threshold = self.DEFAULT_ENERGY_THRESHOLD

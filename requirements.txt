@@ -11,7 +11,7 @@ smbus2==0.5.0
 
 # Computer Vision and Numerical Computing
 opencv-python==4.12.0.88
-numpy==2.3.2
+numpy>=2.0.0,<2.3.0
 pygame==2.6.1
 
 # Utilities and Environment

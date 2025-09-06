@@ -1,14 +1,30 @@
 #!/bin/bash
 # Wrapper script for ai_interface_node
 
+# echo "WRAPPER: ai_interface_node wrapper script starting"
+
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# echo "WRAPPER: SCRIPT_DIR=$SCRIPT_DIR"
 
-# Set up the Python path
-export PYTHONPATH="$SCRIPT_DIR/../python3.11/site-packages:$SCRIPT_DIR/../../../nevil_interfaces_ai_msgs/lib/python3.11/site-packages:$PYTHONPATH"
+# Use system Python3 (all packages now installed there)
+SYSTEM_PYTHON="/usr/bin/python3"
+# echo "WRAPPER: Using system Python: $SYSTEM_PYTHON"
 
-# Set up the library path for shared libraries
-export LD_LIBRARY_PATH="$SCRIPT_DIR/../../../nevil_interfaces_ai_msgs/lib:$LD_LIBRARY_PATH"
+# Source ROS2 environment to ensure workspace packages are available
+source /home/dan/ros2_humble/install/setup.bash
+source /home/dan/Nevil-picar-v2/install/setup.bash
 
-# Execute the Python module directly
-exec python3 -m nevil_interfaces_ai.ai_interface_node "$@"
+# Load environment variables from .env file
+if [ -f "/home/dan/Nevil-picar-v2/.env" ]; then
+    set -a  # automatically export all variables
+    source /home/dan/Nevil-picar-v2/.env
+    set +a  # stop automatically exporting
+fi
+
+# Ensure logs directory exists
+mkdir -p "$ROS_LOG_DIR"
+
+# Execute the node using system Python
+# echo "WRAPPER: Executing ai_interface_node with system Python"
+exec "$SYSTEM_PYTHON" -m nevil_interfaces_ai.ai_interface_node "$@"

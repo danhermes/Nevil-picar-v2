@@ -13,6 +13,12 @@ def launch_setup(context, *args, **kwargs):
     """
     Launch setup function for the development mode system
     """
+    # Configure logging to use workspace logs directory
+    workspace_log_dir = os.path.join(os.path.expanduser('~'), 'Nevil-picar-v2', 'logs')
+    launch_log_dir = os.path.join(workspace_log_dir, 'launch')
+    os.makedirs(launch_log_dir, exist_ok=True)
+    os.environ['ROS_LOG_DIR'] = launch_log_dir
+    
     # Get package directories
     nevil_bringup_dir = get_package_share_directory('nevil_bringup')
     nevil_core_dir = get_package_share_directory('nevil_core')

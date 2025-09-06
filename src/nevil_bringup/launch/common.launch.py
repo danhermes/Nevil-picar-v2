@@ -15,6 +15,26 @@ def generate_launch_description():
     This launch file contains common launch arguments and utilities
     that are used by other launch files.
     """
+    # Configure logging to use workspace logs directory
+    workspace_log_dir = os.path.join(os.path.expanduser('~'), 'Nevil-picar-v2', 'logs')
+    launch_log_dir = os.path.join(workspace_log_dir, 'launch')
+    os.makedirs(launch_log_dir, exist_ok=True)
+    
+    # Set environment variables to fix rcutils_expand_user issues
+    os.environ['ROS_LOG_DIR'] = launch_log_dir
+    os.environ['HOME'] = os.path.expanduser('~')
+    os.environ['USER'] = os.getenv('USER', 'dan')
+    
+    # Load additional environment variables from .env file
+    env_file = os.path.join(os.path.expanduser('~'), 'Nevil-picar-v2', '.env')
+    if os.path.exists(env_file):
+        with open(env_file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key] = value
+    
     # Get package directories
     nevil_bringup_dir = get_package_share_directory('nevil_bringup')
     

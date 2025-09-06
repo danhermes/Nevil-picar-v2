@@ -184,19 +184,27 @@ class AudioHardwareInterface:
                     # self.phrase_threshold = 0.3  # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
                     # self.non_speaking_duration = 0.5  # seconds of non-speaking audio to keep on both sides of the recording
                     self.logger.info("[Initializing Audio]sr.Microphone")
-                    # Try to use the default microphone
-                    try:
-                        self.logger.info('About to create sr.Microphone...')
-                        self.microphone = sr.Microphone(device_index=1, #default device 
-                              chunk_size=self.chunk_size, sample_rate=self.sample_rate)
-                        self.logger.info('Microphone initialized successfully')
-                        self.logger.info(f'Microphone object: {self.microphone}')
-                        self.logger.info(f'Microphone type: {type(self.microphone)}')
-                    except Exception as e:
-                        self.logger.error(f'Failed to initialize microphone: {e}')
-                        self.logger.error(f'Exception type: {type(e).__name__}')
-                        import traceback
-                        self.logger.error(f'Traceback: {traceback.format_exc()}')
+                    # Try to use the default microphone with fallback sample rates
+                    sample_rates_to_try = [44100, 48000, 16000, 22050, 8000]
+                    microphone_initialized = False
+                    
+                    for sample_rate in sample_rates_to_try:
+                        try:
+                            self.logger.info(f'Attempting to create sr.Microphone with sample rate {sample_rate}...')
+                            self.microphone = sr.Microphone(device_index=1, #default device 
+                                  chunk_size=self.chunk_size, sample_rate=sample_rate)
+                            self.sample_rate = sample_rate  # Update the sample rate to what worked
+                            self.logger.info(f'Microphone initialized successfully with sample rate {sample_rate}')
+                            self.logger.info(f'Microphone object: {self.microphone}')
+                            self.logger.info(f'Microphone type: {type(self.microphone)}')
+                            microphone_initialized = True
+                            break
+                        except Exception as e:
+                            self.logger.warning(f'Failed to initialize microphone with sample rate {sample_rate}: {e}')
+                            continue
+                    
+                    if not microphone_initialized:
+                        self.logger.error('Failed to initialize microphone with any sample rate')
                         self.logger.error('Setting microphone to None due to microphone initialization failure')
                         self.microphone = None
                     
@@ -531,26 +539,44 @@ class AudioHardwareInterface:
                 # Double-check microphone is available before using it
                 if not self.microphone:
                     self.logger.error('Microphone is None - cannot listen for speech')
+                    self.logger.error('Microphone object failed during initialization or became corrupted')
                     return None
                 
-                with self.microphone as source:
-                    self.logger.debug('Listening for speech...')
-                    if adjust_for_ambient_noise:
-                        try:
-                            self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
-                            self.logger.debug('adjust_for_ambient_noise: done')
-                        except Exception as e:
-                            self.logger.warning(f'PyAudio read failed during ambient noise adjustment: {e}')
-                            # The microphone is likely in a bad state, don't continue
-                            return None
+                # Additional safety check - ensure microphone is not None
+                if self.microphone is None:
+                    self.logger.error('Microphone is None after mutex check - cannot listen for speech')
+                    self.logger.error('Microphone object became None during operation - possible corruption')
+                    return None
+                
+                try:
+                    with self.microphone as source:
+                        self.logger.debug('Listening for speech...')
+                        if adjust_for_ambient_noise:
+                            try:
+                                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
+                                self.logger.debug('adjust_for_ambient_noise: done')
+                            except Exception as e:
+                                self.logger.warning(f'PyAudio read failed during ambient noise adjustment: {e}')
+                                # PyAudio failure - mark microphone as corrupted and return None
+                                self.logger.error('Microphone corrupted by PyAudio failure - disabling speech recognition')
+                                self.microphone = None
+                                return None
 
-                    # Set energy threshold based on environment
-                    if self.recognizer.energy_threshold < self.DEFAULT_ENERGY_THRESHOLD:
-                        self.recognizer.energy_threshold = self.DEFAULT_ENERGY_THRESHOLD
-                    
-                    audio = self.recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-                    self.logger.debug('Speech captured')
-                    return audio
+                        # Set energy threshold based on environment
+                        if self.recognizer.energy_threshold < self.DEFAULT_ENERGY_THRESHOLD:
+                            self.recognizer.energy_threshold = self.DEFAULT_ENERGY_THRESHOLD
+                        
+                        audio = self.recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
+                        self.logger.debug('Speech captured')
+                        return audio
+                except AttributeError as e:
+                    if "'NoneType' object has no attribute 'close'" in str(e):
+                        self.logger.error('Microphone context manager failed - microphone corrupted')
+                        self.logger.error('Speech recognition disabled due to microphone failure')
+                        self.microphone = None
+                        return None
+                    else:
+                        raise e
         except sr.WaitTimeoutError:
             self.logger.debug('No speech detected within timeout')
             return None

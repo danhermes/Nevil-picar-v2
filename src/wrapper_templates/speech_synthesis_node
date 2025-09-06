@@ -1,15 +1,30 @@
-#!/usr/bin/env python3
+#!/bin/bash
+# Wrapper script for speech_synthesis_node
 
-import sys
-import os
+# echo "WRAPPER: speech_synthesis_node wrapper script starting"
 
-# Add the package to the Python path
-package_path = os.path.join(os.path.dirname(__file__), '..', 'python3.11', 'site-packages')
-sys.path.insert(0, package_path)
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# echo "WRAPPER: SCRIPT_DIR=$SCRIPT_DIR"
 
-# Run the actual Python file directly
-import subprocess
-python_file = os.path.join(package_path, 'nevil_interfaces_ai', 'speech_synthesis_node.py')
-# Ensure we have a valid Python executable
-python_executable = sys.executable or 'python3'
-subprocess.run([python_executable, python_file] + sys.argv[1:])
+# Use system Python3 (all packages now installed there)
+SYSTEM_PYTHON="/usr/bin/python3"
+# echo "WRAPPER: Using system Python: $SYSTEM_PYTHON"
+
+# Source ROS2 environment to ensure workspace packages are available
+source /home/dan/ros2_humble/install/setup.bash
+source /home/dan/Nevil-picar-v2/install/setup.bash
+
+# Load environment variables from .env file
+if [ -f "/home/dan/Nevil-picar-v2/.env" ]; then
+    set -a  # automatically export all variables
+    source /home/dan/Nevil-picar-v2/.env
+    set +a  # stop automatically exporting
+fi
+
+# Ensure logs directory exists
+mkdir -p "$ROS_LOG_DIR"
+
+# Execute the node using system Python with ALSA message suppression
+# echo "WRAPPER: Executing speech_synthesis_node with system Python"
+exec "$SYSTEM_PYTHON" -m nevil_interfaces_ai.speech_synthesis_node "$@" 2>&1 | grep -v "ALSA lib"

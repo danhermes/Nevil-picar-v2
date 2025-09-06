@@ -33,8 +33,8 @@ cleanup() {
 # Set up signal traps for clean shutdown
 trap cleanup SIGINT SIGTERM
 
-# Activate Python venv
-source ./nevil2env/bin/activate
+# Activate Python venv (DISABLED - using system Python now)
+# source ./nevil2env/bin/activate
 
 # Source ROS 2 overlays (parent first, then workspace)
 source ~/ros2_humble/install/setup.bash
@@ -143,7 +143,7 @@ setup_alsa_config() {
 
     # Use our custom ALSA config
     #export ALSA_CONFIG_FILE="/tmp/nevil_asoundrc"
-    export ALSA_CONFIG_PATH="/etc/asound.conf"
+    #export ALSA_CONFIG_PATH="/etc/asound.conf"
     #export ALSA_PCM_CARD=3
     #export ALSA_PCM_DEVICE=0
     
@@ -162,8 +162,8 @@ setup_alsa_config() {
 # Call ALSA setup
 setup_alsa_config
 
-# Use Python from venv
-export PYTHON_EXECUTABLE="$HOME/Nevil-picar-v2/nevil2env/bin/python"
+# Use Python from system (MIGRATED from venv)
+export PYTHON_EXECUTABLE="/usr/bin/python3"
 
 # Ensure PYTHONPATH and LD_LIBRARY_PATH are passed correctly to sudo
 # export PYTHONPATH="$($PYTHON_EXECUTABLE -c 'import sys; print(":".join(sys.path))')"
@@ -180,7 +180,13 @@ if [[ "$1" == "launch" ]]; then
         echo "? Error: No launch file specified."
         exit 1
     fi
-    
+    # kill everything in ros2 node list
+    "$ros2_cli" node list | while read N; do
+        NAME="${N##*/}"
+        echo "Stopping $N"
+        pkill -SIGINT -f "__node:=$NAME" || pkill -TERM -f "__node:=$NAME" || pkill -9 -f "__node:=$NAME"
+    done
+    sleep 0.5
     # Clear any existing audio processes before launching
     echo "🔧 Clearing existing audio processes..."
     pkill -f "speech_synthesis" 2>/dev/null || true

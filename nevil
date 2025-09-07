@@ -57,7 +57,7 @@ pactl set-default-source alsa_input.usb-C-Media_Electronics_Inc._USB_PnP_Sound_D
 
 # config asound
 #=======================
-newline
+echo ""
 echo "Configuring sound output"
 # backup file
 if [ -e /etc/asound.conf ]; then
@@ -69,7 +69,7 @@ fi
 
 # auto_sound_card scripts
 
-sudo cat > /usr/local/bin/auto_sound_card << '-EOF'
+sudo tee /usr/local/bin/auto_sound_card > /dev/null << 'EOF'
 #!/bin/bash
 
 ASOUND_CONF=/etc/asound.conf
@@ -78,7 +78,9 @@ AUDIO_CARD_NAME="sndrpihifiberry"
 card_num=$(sudo aplay -l |grep $AUDIO_CARD_NAME |awk '{print $2}'|tr -d ':')
 echo "card_num=$card_num"
 if [ -n "$card_num" ]; then
-    cat > $ASOUND_CONF << EOF
+    sudo chattr -i $ASOUND_CONF 2>/dev/null || true
+    sudo chmod +rw $ASOUND_CONF
+    sudo tee $ASOUND_CONF > /dev/null << INNER_EOF
 pcm.speakerbonnet {
     type hw card $card_num
 }
@@ -116,7 +118,7 @@ pcm.!default {
     type             plug
     slave.pcm       "softvol"
 }
-EOF
+INNER_EOF
     echo "systemctl restart aplay.service"
     sudo systemctl restart aplay.service
 
@@ -128,7 +130,7 @@ EOF
 fi
 
 exit 0
--EOF
+EOF
 
 sudo chmod +x /usr/local/bin/auto_sound_card
 

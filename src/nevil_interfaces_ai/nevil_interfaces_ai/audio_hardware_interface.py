@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Audio Hardware Interface for Nevil-picar v2.0.
+Audio for Nevil-picar v2.0.
 
 This module provides a thread-safe hardware interface for audio input/output
 on the Nevil-picar v2.0 system, interfacing with the microphone and speaker hardware.
@@ -85,7 +85,7 @@ def constrain(x, min_val, max_val):
 
 class AudioHardwareInterface:
     """
-    Audio hardware interface for Nevil-picar v2.0.
+    Audio for Nevil-picar v2.0.
     
     This class provides a thread-safe interface to the microphone and speaker hardware,
     with proper mutex handling for real-time performance.
@@ -109,7 +109,7 @@ class AudioHardwareInterface:
     
     def __init__(self, node=None):
         """
-        Initialize the audio hardware interface.
+        Initialize the Audio.
         
         Args:
             node: ROS2 node for logging (optional)
@@ -118,8 +118,8 @@ class AudioHardwareInterface:
         self.logger = get_logger('audio_hardware_interface') if node is None else node.get_logger()
         
         # Add debug logging for initialization
-        self.logger.warning('🔊 AUDIO HARDWARE INTERFACE: Initializing...')
-        print("🔊 AUDIO HARDWARE INTERFACE: Initializing...")
+        self.logger.warning('🔊 Audio: Initializing...')
+        print("🔊 Audio: Initializing...")
         
         # Initialize hardware mutex
         self.hardware_mutex = threading.Lock()
@@ -155,14 +155,14 @@ class AudioHardwareInterface:
             self.logger.warn('No OpenAI API key found. OpenAI TTS and STT services will not be available.')
         
         # Check if audio libraries are available
-        self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: AUDIO_LIBS_AVAILABLE = {AUDIO_LIBS_AVAILABLE}')
-        print(f"🔊 AUDIO HARDWARE INTERFACE: AUDIO_LIBS_AVAILABLE = {AUDIO_LIBS_AVAILABLE}")
+        self.logger.warning(f'🔊 Audio: AUDIO_LIBS_AVAILABLE = {AUDIO_LIBS_AVAILABLE}')
+        print(f"🔊 Audio: AUDIO_LIBS_AVAILABLE = {AUDIO_LIBS_AVAILABLE}")
         
         if not AUDIO_LIBS_AVAILABLE:
-            self.logger.error('🔊 AUDIO HARDWARE INTERFACE: Audio libraries are not available')
-            print("🔊 AUDIO HARDWARE INTERFACE: Audio libraries are not available")
-            self.logger.warn('🔊 AUDIO HARDWARE INTERFACE: Running in simulation mode')
-            print("🔊 AUDIO HARDWARE INTERFACE: Running in simulation mode")
+            self.logger.error('🔊 Audio: Audio libraries are not available')
+            print("🔊 Audio: Audio libraries are not available")
+            self.logger.warn('🔊 Audio: Running in simulation mode')
+            print("🔊 Audio: Running in simulation mode")
             self.recognizer = None
             self.microphone = None
             self.tts = None
@@ -174,13 +174,13 @@ class AudioHardwareInterface:
             # Initialize the audio hardware
             try:
                 with self.hardware_mutex:
-                    self.logger.warning('🔊 AUDIO HARDWARE INTERFACE: Initializing audio hardware...')
-                    print("🔊 AUDIO HARDWARE INTERFACE: Initializing audio hardware...")
+                    self.logger.warning('🔊 Audio: Initializing audio hardware...')
+                    print("🔊 Audio: Initializing audio hardware...")
                     
                     # Initialize speech recognition with environment variables
                     self.recognizer = sr.Recognizer()
-                    self.logger.warning("🔊 AUDIO HARDWARE INTERFACE: [Initializing Audio]sr.Recognizer()")
-                    print("🔊 AUDIO HARDWARE INTERFACE: [Initializing Audio]sr.Recognizer()")
+                    self.logger.warning("🔊 Audio: [Initializing Audio]sr.Recognizer()")
+                    print("🔊 Audio: [Initializing Audio]sr.Recognizer()")
 
                     self.recognizer.energy_threshold = int(get_env_var('SPEECH_RECOGNITION_ENERGY_THRESHOLD', self.DEFAULT_ENERGY_THRESHOLD))
                     self.recognizer.pause_threshold = float(get_env_var('SPEECH_RECOGNITION_PAUSE_THRESHOLD', self.DEFAULT_PAUSE_THRESHOLD))
@@ -194,37 +194,37 @@ class AudioHardwareInterface:
 
                     # self.phrase_threshold = 0.3  # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
                     # self.non_speaking_duration = 0.5  # seconds of non-speaking audio to keep on both sides of the recording
-                    self.logger.warning("🔊 AUDIO HARDWARE INTERFACE: [Initializing Audio]sr.Microphone")
-                    print("🔊 AUDIO HARDWARE INTERFACE: [Initializing Audio]sr.Microphone")
+                    self.logger.warning("🔊 Audio: [Initializing Audio]sr.Microphone")
+                    print("🔊 Audio: [Initializing Audio]sr.Microphone")
                     # Try to use the default microphone with fallback sample rates
                     sample_rates_to_try = [44100, 48000, 16000, 22050, 8000]
                     microphone_initialized = False
                     
                     for sample_rate in sample_rates_to_try:
                         try:
-                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Attempting to create sr.Microphone with sample rate {sample_rate}...')
-                            print(f"🔊 AUDIO HARDWARE INTERFACE: Attempting to create sr.Microphone with sample rate {sample_rate}...")
+                            self.logger.warning(f'🔊 Audio: Attempting to create sr.Microphone with sample rate {sample_rate}...')
+                            print(f"🔊 Audio: Attempting to create sr.Microphone with sample rate {sample_rate}...")
                             self.microphone = sr.Microphone(device_index=1, #default device
                                   chunk_size=self.chunk_size, sample_rate=sample_rate)
                             self.sample_rate = sample_rate  # Update the sample rate to what worked
-                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Microphone initialized successfully with sample rate {sample_rate}')
-                            print(f"🔊 AUDIO HARDWARE INTERFACE: Microphone initialized successfully with sample rate {sample_rate}")
-                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Microphone object: {self.microphone}')
-                            print(f"🔊 AUDIO HARDWARE INTERFACE: Microphone object: {self.microphone}")
-                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Microphone type: {type(self.microphone)}')
-                            print(f"🔊 AUDIO HARDWARE INTERFACE: Microphone type: {type(self.microphone)}")
+                            self.logger.warning(f'🔊 Audio: Microphone initialized successfully with sample rate {sample_rate}')
+                            print(f"🔊 Audio: Microphone initialized successfully with sample rate {sample_rate}")
+                            self.logger.warning(f'🔊 Audio: Microphone object: {self.microphone}')
+                            print(f"🔊 Audio: Microphone object: {self.microphone}")
+                            self.logger.warning(f'🔊 Audio: Microphone type: {type(self.microphone)}')
+                            print(f"🔊 Audio: Microphone type: {type(self.microphone)}")
                             microphone_initialized = True
                             break
                         except Exception as e:
-                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Failed to initialize microphone with sample rate {sample_rate}: {e}')
-                            print(f"🔊 AUDIO HARDWARE INTERFACE: Failed to initialize microphone with sample rate {sample_rate}: {e}")
+                            self.logger.warning(f'🔊 Audio: Failed to initialize microphone with sample rate {sample_rate}: {e}')
+                            print(f"🔊 Audio: Failed to initialize microphone with sample rate {sample_rate}: {e}")
                             continue
                     
                     if not microphone_initialized:
-                        self.logger.error('🔊 AUDIO HARDWARE INTERFACE: Failed to initialize microphone with any sample rate')
-                        print("🔊 AUDIO HARDWARE INTERFACE: Failed to initialize microphone with any sample rate")
-                        self.logger.error('🔊 AUDIO HARDWARE INTERFACE: Setting microphone to None due to microphone initialization failure')
-                        print("🔊 AUDIO HARDWARE INTERFACE: Setting microphone to None due to microphone initialization failure")
+                        self.logger.error('🔊 Audio: Failed to initialize microphone with any sample rate')
+                        print("🔊 Audio: Failed to initialize microphone with any sample rate")
+                        self.logger.error('🔊 Audio: Setting microphone to None due to microphone initialization failure')
+                        print("🔊 Audio: Setting microphone to None due to microphone initialization failure")
                         self.microphone = None
                     
                     # Initialize TTS - FIXED: Use OpenAI TTS as primary, robot_hat Music only for playback
@@ -888,5 +888,5 @@ class AudioHardwareInterface:
             self.logger.error(f'Failed to clean up audio hardware resources: {e}')
 
 if __name__ == "__main__":
-    print("Fixed Audio Hardware Interface - Uses OpenAI TTS as primary, robot_hat Music only for playback")
-    print("Fixed Audio Hardware Interface - Uses OpenAI TTS as primary, robot_hat Music only for playback")
+    print("Fixed Audio - Uses OpenAI TTS as primary, robot_hat Music only for playback")
+    print("Fixed Audio - Uses OpenAI TTS as primary, robot_hat Music only for playback")

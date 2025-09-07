@@ -39,7 +39,7 @@ except ImportError:
 
 class SpeechRecognitionNode(Node):
     """
-    Speech recognition node for Nevil-picar v2.0.
+    Speech Recog for Nevil-picar v2.0.
     
     This node listens for audio input from a microphone and converts
     it to text using speech recognition. It supports both online and
@@ -50,8 +50,8 @@ class SpeechRecognitionNode(Node):
         super().__init__('speech_recognition_node')
         
         # Add debug logging for initialization
-        self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Initializing...')
-        print("🔊 SPEECH RECOGNITION NODE: Initializing...")
+        self.get_logger().warning('🔊 Speech Recog: Initializing...')
+        print("🔊 Speech Recog: Initializing...")
         
         # Declare parameters with defaults from environment variables
         self.declare_parameter('use_online_recognition', True)
@@ -149,20 +149,20 @@ class SpeechRecognitionNode(Node):
         )
         
         # Initialize audio hardware interface
-        self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Initializing audio hardware interface...')
-        print("🔊 SPEECH RECOGNITION NODE: Initializing audio hardware interface...")
+        self.get_logger().warning('🔊 Speech Recog: Initializing audio hardware interface...')
+        print("🔊 Speech Recog: Initializing audio hardware interface...")
         self.audio_hw = AudioHardwareInterface(self)
         
         # Check if audio hardware initialized properly
         if self.audio_hw.simulation_mode:
-            self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Audio hardware in simulation mode - microphone may not be available')
-            print("🔊 SPEECH RECOGNITION NODE: Audio hardware in simulation mode - microphone may not be available")
+            self.get_logger().warning('🔊 Speech Recog: Audio hardware in simulation mode - microphone may not be available')
+            print("🔊 Speech Recog: Audio hardware in simulation mode - microphone may not be available")
         elif not self.audio_hw.microphone:
-            self.get_logger().error('🔊 SPEECH RECOGNITION NODE: Microphone not available - speech recognition disabled')
-            print("🔊 SPEECH RECOGNITION NODE: Microphone not available - speech recognition disabled")
+            self.get_logger().error('🔊 Speech Recog: Microphone not available - speech recognition disabled')
+            print("🔊 Speech Recog: Microphone not available - speech recognition disabled")
         else:
-            self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Audio hardware initialized successfully')
-            print("🔊 SPEECH RECOGNITION NODE: Audio hardware initialized successfully")
+            self.get_logger().warning('🔊 Speech Recog: Audio hardware initialized successfully')
+            print("🔊 Speech Recog: Audio hardware initialized successfully")
         
         # Configure speech recognition parameters with v1.0 detailed settings
         self.audio_hw.set_speech_recognition_parameters(
@@ -188,12 +188,12 @@ class SpeechRecognitionNode(Node):
         self.audio_thread.daemon = True
         self.audio_thread.start()
         
-        self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Speech recognition node initialized')
-        print("🔊 SPEECH RECOGNITION NODE: Speech recognition node initialized")
+        self.get_logger().warning('🔊 Speech Recog: Speech Recog initialized')
+        print("🔊 Speech Recog: Speech Recog initialized")
         
         # Start listening if auto-start is enabled
-        self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Starting listening...')
-        print("🔊 SPEECH RECOGNITION NODE: Starting listening...")
+        self.get_logger().warning('🔊 Speech Recog: Starting listening...')
+        print("🔊 Speech Recog: Starting listening...")
         self.start_listening()
     
     def listen_trigger_callback(self, msg):
@@ -230,24 +230,24 @@ class SpeechRecognitionNode(Node):
     def start_listening(self):
         """Start listening for speech."""
         if self.is_listening:
-            self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Already listening, skipping start_listening')
-            print("🔊 SPEECH RECOGNITION NODE: Already listening, skipping start_listening")
+            self.get_logger().warning('🔊 Speech Recog: Already listening, skipping start_listening')
+            print("🔊 Speech Recog: Already listening, skipping start_listening")
             return
         
         self.is_listening = True
-        self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Started listening for speech')
-        print("🔊 SPEECH RECOGNITION NODE: Started listening for speech")
+        self.get_logger().warning('🔊 Speech Recog: Started listening for speech')
+        print("🔊 Speech Recog: Started listening for speech")
         
         # Check microphone availability before starting thread
         if not self.audio_hw.microphone:
-            self.get_logger().error('🔊 SPEECH RECOGNITION NODE: Cannot start listening - microphone not available')
-            print("🔊 SPEECH RECOGNITION NODE: Cannot start listening - microphone not available")
+            self.get_logger().error('🔊 Speech Recog: Cannot start listening - microphone not available')
+            print("🔊 Speech Recog: Cannot start listening - microphone not available")
             self.is_listening = False
             return
         
         # Start microphone in a separate thread to avoid blocking
-        self.get_logger().warning('🔊 SPEECH RECOGNITION NODE: Starting microphone thread...')
-        print("🔊 SPEECH RECOGNITION NODE: Starting microphone thread...")
+        self.get_logger().warning('🔊 Speech Recog: Starting microphone thread...')
+        print("🔊 Speech Recog: Starting microphone thread...")
         threading.Thread(target=self.listen_microphone).start()
     
     def stop_listening(self):

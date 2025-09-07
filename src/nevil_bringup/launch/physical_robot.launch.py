@@ -4,7 +4,7 @@ import os
 import subprocess
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction, ExecuteProcess
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, OpaqueFunction, ExecuteProcess, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -23,6 +23,7 @@ def launch_setup(context, *args, **kwargs):
     os.environ['ROS_LOG_DIR'] = launch_log_dir
     os.environ['HOME'] = os.path.expanduser('~')
     os.environ['USER'] = os.getenv('USER', 'dan')
+
     
     # Load additional environment variables from .env file
     env_file = os.path.join(os.path.expanduser('~'), 'Nevil-picar-v2', '.env')
@@ -38,7 +39,7 @@ def launch_setup(context, *args, **kwargs):
     nevil_bringup_dir = get_package_share_directory('nevil_bringup')
     nevil_core_dir = get_package_share_directory('nevil_core')
     nevil_navigation_dir = get_package_share_directory('nevil_navigation')
-    #nevil_perception_dir = get_package_share_directory('nevil_perception')
+    nevil_perception_dir = get_package_share_directory('nevil_perception')
     nevil_interfaces_ai_dir = get_package_share_directory('nevil_interfaces_ai')
     nevil_realtime_dir = get_package_share_directory('nevil_realtime')
     
@@ -83,17 +84,17 @@ def launch_setup(context, *args, **kwargs):
     )
     actions.append(navigation_node)
     
-    # # Include the perception launch file # TODO: Uncomment this when perception is ready - paused
-    # perception_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([
-    #         os.path.join(nevil_perception_dir, 'launch', 'nevil_perception.launch.py')
-    #     ]),
-    #     launch_arguments={
-    #         'use_sim': 'false',
-    #         'config_file': config_file
-    #     }.items()
-    # )
-    # actions.append(perception_launch)
+    # Include the perception launch file # TODO: Uncomment this when perception is ready - paused
+    perception_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            os.path.join(nevil_perception_dir, 'launch', 'nevil_perception.launch.py')
+        ]),
+        launch_arguments={
+            'use_sim': 'false',
+            'config_file': config_file
+        }.items()
+    )
+    actions.append(perception_launch)
     
     # Include the AI interfaces launch file if voice is enabled
     if enable_voice.lower() in ['true', 't', 'yes', 'y', '1']:
@@ -318,6 +319,10 @@ def generate_launch_description():
     
     # Create the launch description
     ld = LaunchDescription([
+        SetEnvironmentVariable('RCUTILS_CONSOLE_OUTPUT_FORMAT','[{time}] {severity} [{name}] {message}'),
+        SetEnvironmentVariable('RCUTILS_COLORIZED_OUTPUT','1'),
+        SetEnvironmentVariable('RCUTILS_LOGGING_USE_STDOUT','1'),
+        SetEnvironmentVariable('PYTHONUNBUFFERED','1'),
         common_launch,
         enable_rt_arg,
         enable_voice_arg

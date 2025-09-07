@@ -20,7 +20,7 @@ cleanup() {
     sleep 1
     
     # Clean up ALSA config
-    rm -f /tmp/nevil_asoundrc 2>/dev/null || true
+    #rm -f /tmp/nevil_asoundrc 2>/dev/null || true
     
     # Stop and restart ROS2 daemon to clear ghost nodes
     ros2 daemon stop 2>/dev/null || true
@@ -55,112 +55,142 @@ source ~/Nevil-picar-v2/install/setup.bash
 pactl set-default-source alsa_input.usb-C-Media_Electronics_Inc._USB_PnP_Sound_Device-00.analog-mono
 
 
-# # Set ALSA environment for HifiBerry DAC (permanent audio fix)
-# export ALSA_CARD=3
-# export ALSA_DEVICE=0
-# export ALSA_SUBDEVICE=0
+# config asound
+#=======================
+newline
+echo "Configuring sound output"
+# backup file
+if [ -e /etc/asound.conf ]; then
+    if [ -e /etc/asound.conf.old ]; then
+        sudo rm -f /etc/asound.conf.old
+    fi
+    sudo cp /etc/asound.conf /etc/asound.conf.old
+fi
 
-# Set SDL audio driver for pygame to use HifiBerry DAC
-#export SDL_AUDIODRIVER=alsa
+# auto_sound_card scripts
 
-# Configure ALSA for Nevil audio system
-setup_alsa_config() {
-    echo "🔊 Setting up ALSA configuration for HifiBerry DAC + USB microphone..."
-    
-#     # Create temporary ALSA config that overrides system config
-#     cat > /tmp/nevil_asoundrc << 'EOF'
-# # Nevil Audio System Configuration
-# # HifiBerry DAC (card 3) for output, USB Sound Device (card 4) for input
+sudo cat > /usr/local/bin/auto_sound_card << '-EOF'
+#!/bin/bash
 
+ASOUND_CONF=/etc/asound.conf
+AUDIO_CARD_NAME="sndrpihifiberry"
 
-# # Default PCM device - use dmix/dsnoop to prevent underruns
-# pcm.!default {
-#     type asym
-#     playback.pcm {
-#         type plug
-#         slave.pcm "dmixed"
-#     }
-#     capture.pcm {
-#         type plug
-#         slave.pcm "dsnooped"
-#     }
-# }
-
-# # Control device for volume/mixer
-# ctl.!default {
-#     type hw
-#     card 3  # HifiBerry DAC for controls
-# }
-
-# # Explicit playback device for TTS
-# pcm.speaker {
-#     type hw
-#     card 3
-#     device 0
-# }
-
-# # Explicit capture device for STT
-# pcm.microphone {
-#     type hw
-#     card 4
-#     device 0
-# }
-
-# # Dmix device for multiple audio streams - optimized buffer sizes
-# pcm.dmixed {
-#     type dmix
-#     ipc_key 1024
-#     slave {
-#         pcm "hw:3,0"
-#         rate 44100
-#         channels 2
-#         period_time 0
-#         period_size 2048    # Larger period size to prevent underruns
-#         buffer_size 16384   # Much larger buffer to handle latency spikes
-#         periods 8           # More periods for smoother playback
-#     }
-#     bindings {
-#         0 0
-#         1 1
-#     }
-# }
-
-# # Dsnoop device for capture - optimized for speech recognition
-# pcm.dsnooped {
-#     type dsnoop
-#     ipc_key 2048
-#     slave {
-#         pcm "hw:2,0"        # USB microphone
-#         rate 16000          # Standard rate for speech recognition
-#         channels 1          # Mono for speech
-#         period_time 0
-#         period_size 1024    # Good for real-time speech capture
-#         buffer_size 8192    # Sufficient buffer for speech processing
-#         periods 4
-#     }
-# }
-# EOF
-
-    # Use our custom ALSA config
-    #export ALSA_CONFIG_FILE="/tmp/nevil_asoundrc"
-    #export ALSA_CONFIG_PATH="/etc/asound.conf"
-    #export ALSA_PCM_CARD=3
-    #export ALSA_PCM_DEVICE=0
-    
-    # Additional ALSA environment variables to prevent underruns
-    export ALSA_BUFFER_SIZE=16384
-    export ALSA_PERIOD_SIZE=2048
-    export ALSA_PERIODS=8
-    
-    # Pygame audio settings for better buffering
-    #export SDL_AUDIODRIVER=alsa
-    export SDL_AUDIO_BUFFER_SIZE=4096
-    
-    echo "✅ ALSA configuration ready with optimized buffers"
+card_num=$(sudo aplay -l |grep $AUDIO_CARD_NAME |awk '{print $2}'|tr -d ':')
+echo "card_num=$card_num"
+if [ -n "$card_num" ]; then
+    cat > $ASOUND_CONF << EOF
+pcm.speakerbonnet {
+    type hw card $card_num
 }
 
-# Call ALSA setup
-setup_alsa_config
+pcm.dmixer {
+    type dmix
+    ipc_key 1024
+    ipc_perm 0666
+    slave {
+        pcm "speakerbonnet"
+        period_time 0
+        period_size 1024
+        buffer_size 8192
+        rate 44100
+        channels 2
+    }
+}
+
+ctl.dmixer {
+    type hw card $card_num
+}
+
+pcm.softvol {
+    type softvol
+    slave.pcm "dmixer"
+    control.name "PCM"
+    control.card $card_num
+}
+
+ctl.softvol {
+    type hw card $card_num
+}
+
+pcm.!default {
+    type             plug
+    slave.pcm       "softvol"
+}
+EOF
+    echo "systemctl restart aplay.service"
+    sudo systemctl restart aplay.service
+
+    if [ -n $1 ] && [ $1 -gt 0 ]; then
+        echo "set volume to $1"
+        amixer -c $card_num sset PCM $1%
+    fi
+
+fi
+
+exit 0
+-EOF
+
+sudo chmod +x /usr/local/bin/auto_sound_card
+
+# execute the script once
+sudo /usr/local/bin/auto_sound_card 100
+
+# # Configure ALSA for Nevil audio system
+# setup_alsa_config() {
+
+# echo "🔊 Setting up ALSA configuration for HifiBerry DAC + USB microphone..."
+# cat > /tmp/nevil_asoundrc << 'EOF'
+   
+#     pcm.speakerbonnet {
+#         type hw card 2
+#     }
+
+#     pcm.dmixer {
+#         type dmix
+#         ipc_key 1024
+#         ipc_perm 0666
+#         slave {
+#             pcm "speakerbonnet"
+#             period_time 0
+#             period_size 1024
+#             buffer_size 8192
+#             rate 44100
+#             channels 2
+#         }
+#     }
+
+#     ctl.dmixer {
+#         type hw card 2
+#     }
+
+#     pcm.softvol {
+#         type softvol
+#         slave.pcm "dmixer"
+#         control.name "PCM"
+#         control.card 2
+#     }
+
+#     ctl.softvol {
+#         type hw card 2
+#     }
+
+#     pcm.!default {
+#         type             plug
+#         slave.pcm       "softvol"
+#     }
+# EOF
+
+# # Use our custom ALSA config
+# export ALSA_CONFIG_FILE="/tmp/nevil_asoundrc"
+# export ALSA_CONFIG_PATH="/etc/asound.conf"
+# export ALSA_PCM_CARD=2
+# export ALSA_PCM_DEVICE=0
+
+# echo "✅ ALSA configuration ready"
+# }
+
+# # Call ALSA setup
+# setup_alsa_config
 
 # Use Python from system (MIGRATED from venv)
 export PYTHON_EXECUTABLE="/usr/bin/python3"

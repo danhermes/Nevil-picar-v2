@@ -48,6 +48,10 @@ class SpeechSynthesisNode(Node):
     def __init__(self):
         super().__init__('speech_synthesis_node')
         
+        # Add debug logging for initialization
+        self.get_logger().warning('🔊 SPEECH SYNTHESIS NODE: Initializing...')
+        print("🔊 SPEECH SYNTHESIS NODE: Initializing...")
+        
         # Declare parameters with defaults from environment variables
         self.declare_parameter('use_online_tts', False)
         self.declare_parameter('online_service', get_env_var('SPEECH_SYNTHESIS_SERVICE', 'google'))  # 'google', 'azure', etc.
@@ -81,7 +85,7 @@ class SpeechSynthesisNode(Node):
             durability=DurabilityPolicy.VOLATILE,
             #history=HistoryPolicy.KEEP_LAST,
             depth=1
-        ) 
+        )
         
         # Create publishers
         self.speaking_status_pub = self.create_publisher(
@@ -122,6 +126,8 @@ class SpeechSynthesisNode(Node):
         )
         
         # Initialize audio hardware interface
+        self.get_logger().warning('🔊 SPEECH SYNTHESIS NODE: Initializing audio hardware interface...')
+        print("🔊 SPEECH SYNTHESIS NODE: Initializing audio hardware interface...")
         self.audio_hw = AudioHardwareInterface(self)
         
         # Initialize state variables
@@ -136,7 +142,8 @@ class SpeechSynthesisNode(Node):
         self.speech_thread.daemon = True
         self.speech_thread.start()
         
-        self.get_logger().info('Speech synthesis node initialized')
+        self.get_logger().warning('🔊 SPEECH SYNTHESIS NODE: Speech synthesis node initialized')
+        print("🔊 SPEECH SYNTHESIS NODE: Speech synthesis node initialized")
     
     # The init_tts_engine method is no longer needed as we're using the AudioHardwareInterface
     
@@ -157,7 +164,8 @@ class SpeechSynthesisNode(Node):
     
     def text_response_callback(self, msg):
         """Handle text response messages and convert to speech."""
-        self.get_logger().info(f'Received text response: {msg.response_text}')
+        self.get_logger().warning(f'🔊 SPEECH SYNTHESIS: Received text response: {msg.response_text}')
+        print(f"🔊 SPEECH SYNTHESIS: Received text response: {msg.response_text}")
         
         # Add to speech queue
         self.speech_queue.put({
@@ -216,13 +224,16 @@ class SpeechSynthesisNode(Node):
             
             # Use the audio hardware interface to speak the text
             # Use the new voice parameter and wait parameter
+            self.get_logger().warning(f'🔊 SPEECH SYNTHESIS: Starting to speak: {text}')
+            print(f"🔊 SPEECH SYNTHESIS: Starting to speak: {text}")
             self.audio_hw.speak_text(text, voice=voice_id, wait=True)
             
             # Update speaking status
             self.is_speaking = False
             self.publish_speaking_status(False)
             
-            self.get_logger().info(f'Finished speaking: {text}')
+            self.get_logger().warning(f'🔊 SPEECH SYNTHESIS: Finished speaking: {text}')
+            print(f"🔊 SPEECH SYNTHESIS: Finished speaking: {text}")
             
         except Exception as e:
             self.get_logger().error(f'Error synthesizing speech: {e}')

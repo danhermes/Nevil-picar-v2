@@ -53,6 +53,7 @@ class AIInterfaceNode(Node):
         self.status_pub = self.create_publisher(String, 'ai_status', qos_profile=self.ai_qos)
         
         # Subscribers
+        # Execute text commands from text_command_processor node (?)
         self.text_command_sub = self.create_subscription(
             TextCommand,
             '/nevil/text_command',

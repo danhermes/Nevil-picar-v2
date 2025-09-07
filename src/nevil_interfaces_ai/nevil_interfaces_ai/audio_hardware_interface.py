@@ -117,6 +117,10 @@ class AudioHardwareInterface:
         self.node = node
         self.logger = get_logger('audio_hardware_interface') if node is None else node.get_logger()
         
+        # Add debug logging for initialization
+        self.logger.warning('🔊 AUDIO HARDWARE INTERFACE: Initializing...')
+        print("🔊 AUDIO HARDWARE INTERFACE: Initializing...")
+        
         # Initialize hardware mutex
         self.hardware_mutex = threading.Lock()
         self.speech_lock = threading.Lock()
@@ -151,9 +155,14 @@ class AudioHardwareInterface:
             self.logger.warn('No OpenAI API key found. OpenAI TTS and STT services will not be available.')
         
         # Check if audio libraries are available
+        self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: AUDIO_LIBS_AVAILABLE = {AUDIO_LIBS_AVAILABLE}')
+        print(f"🔊 AUDIO HARDWARE INTERFACE: AUDIO_LIBS_AVAILABLE = {AUDIO_LIBS_AVAILABLE}")
+        
         if not AUDIO_LIBS_AVAILABLE:
-            self.logger.error('Audio libraries are not available')
-            self.logger.warn('Running in simulation mode')
+            self.logger.error('🔊 AUDIO HARDWARE INTERFACE: Audio libraries are not available')
+            print("🔊 AUDIO HARDWARE INTERFACE: Audio libraries are not available")
+            self.logger.warn('🔊 AUDIO HARDWARE INTERFACE: Running in simulation mode')
+            print("🔊 AUDIO HARDWARE INTERFACE: Running in simulation mode")
             self.recognizer = None
             self.microphone = None
             self.tts = None
@@ -165,11 +174,13 @@ class AudioHardwareInterface:
             # Initialize the audio hardware
             try:
                 with self.hardware_mutex:
-                    self.logger.info('Initializing audio hardware...')
+                    self.logger.warning('🔊 AUDIO HARDWARE INTERFACE: Initializing audio hardware...')
+                    print("🔊 AUDIO HARDWARE INTERFACE: Initializing audio hardware...")
                     
                     # Initialize speech recognition with environment variables
                     self.recognizer = sr.Recognizer()
-                    self.logger.info("[Initializing Audio]sr.Recognizer()")
+                    self.logger.warning("🔊 AUDIO HARDWARE INTERFACE: [Initializing Audio]sr.Recognizer()")
+                    print("🔊 AUDIO HARDWARE INTERFACE: [Initializing Audio]sr.Recognizer()")
 
                     self.recognizer.energy_threshold = int(get_env_var('SPEECH_RECOGNITION_ENERGY_THRESHOLD', self.DEFAULT_ENERGY_THRESHOLD))
                     self.recognizer.pause_threshold = float(get_env_var('SPEECH_RECOGNITION_PAUSE_THRESHOLD', self.DEFAULT_PAUSE_THRESHOLD))
@@ -183,29 +194,37 @@ class AudioHardwareInterface:
 
                     # self.phrase_threshold = 0.3  # minimum seconds of speaking audio before we consider the speaking audio a phrase - values below this are ignored (for filtering out clicks and pops)
                     # self.non_speaking_duration = 0.5  # seconds of non-speaking audio to keep on both sides of the recording
-                    self.logger.info("[Initializing Audio]sr.Microphone")
+                    self.logger.warning("🔊 AUDIO HARDWARE INTERFACE: [Initializing Audio]sr.Microphone")
+                    print("🔊 AUDIO HARDWARE INTERFACE: [Initializing Audio]sr.Microphone")
                     # Try to use the default microphone with fallback sample rates
                     sample_rates_to_try = [44100, 48000, 16000, 22050, 8000]
                     microphone_initialized = False
                     
                     for sample_rate in sample_rates_to_try:
                         try:
-                            self.logger.info(f'Attempting to create sr.Microphone with sample rate {sample_rate}...')
-                            self.microphone = sr.Microphone(device_index=1, #default device 
+                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Attempting to create sr.Microphone with sample rate {sample_rate}...')
+                            print(f"🔊 AUDIO HARDWARE INTERFACE: Attempting to create sr.Microphone with sample rate {sample_rate}...")
+                            self.microphone = sr.Microphone(device_index=1, #default device
                                   chunk_size=self.chunk_size, sample_rate=sample_rate)
                             self.sample_rate = sample_rate  # Update the sample rate to what worked
-                            self.logger.info(f'Microphone initialized successfully with sample rate {sample_rate}')
-                            self.logger.info(f'Microphone object: {self.microphone}')
-                            self.logger.info(f'Microphone type: {type(self.microphone)}')
+                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Microphone initialized successfully with sample rate {sample_rate}')
+                            print(f"🔊 AUDIO HARDWARE INTERFACE: Microphone initialized successfully with sample rate {sample_rate}")
+                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Microphone object: {self.microphone}')
+                            print(f"🔊 AUDIO HARDWARE INTERFACE: Microphone object: {self.microphone}")
+                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Microphone type: {type(self.microphone)}')
+                            print(f"🔊 AUDIO HARDWARE INTERFACE: Microphone type: {type(self.microphone)}")
                             microphone_initialized = True
                             break
                         except Exception as e:
-                            self.logger.warning(f'Failed to initialize microphone with sample rate {sample_rate}: {e}')
+                            self.logger.warning(f'🔊 AUDIO HARDWARE INTERFACE: Failed to initialize microphone with sample rate {sample_rate}: {e}')
+                            print(f"🔊 AUDIO HARDWARE INTERFACE: Failed to initialize microphone with sample rate {sample_rate}: {e}")
                             continue
                     
                     if not microphone_initialized:
-                        self.logger.error('Failed to initialize microphone with any sample rate')
-                        self.logger.error('Setting microphone to None due to microphone initialization failure')
+                        self.logger.error('🔊 AUDIO HARDWARE INTERFACE: Failed to initialize microphone with any sample rate')
+                        print("🔊 AUDIO HARDWARE INTERFACE: Failed to initialize microphone with any sample rate")
+                        self.logger.error('🔊 AUDIO HARDWARE INTERFACE: Setting microphone to None due to microphone initialization failure')
+                        print("🔊 AUDIO HARDWARE INTERFACE: Setting microphone to None due to microphone initialization failure")
                         self.microphone = None
                     
                     # Initialize TTS - FIXED: Use OpenAI TTS as primary, robot_hat Music only for playback
@@ -308,7 +327,8 @@ class AudioHardwareInterface:
         # In hardware mode, speak text with mutex protection
         try:
             with self.hardware_mutex:
-                self.logger.debug(f'Speaking text: {text}')
+                self.logger.warning(f'🔊 AUDIO HARDWARE: Speaking text: {text}')
+                print(f"🔊 AUDIO HARDWARE: Speaking text: {text}")
                 
                 # Use voice parameter if provided, otherwise use default
                 tts_voice = voice if voice else self.tts_voice
@@ -365,9 +385,10 @@ class AudioHardwareInterface:
                         
                         # Use non-realtime aplay command to prevent ALSA underruns
                         try:
-                            self.logger.debug('Playing audio with aplay (non-realtime)')
+                            self.logger.warning('🔊 AUDIO PLAYBACK: Starting aplay (non-realtime)')
+                            print("🔊 AUDIO PLAYBACK: Starting mpg123 (non-realtime)")
                             
-                            # Use aplay with our ALSA config - most stable approach
+                            # Use mpg123 for MP3 playback - most stable approach
                             import subprocess
                             
                             # Create environment with our ALSA config
@@ -375,49 +396,87 @@ class AudioHardwareInterface:
                             if os.path.exists('/tmp/nevil_asoundrc'):
                                 play_env['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
                             
-                            # Use aplay with larger buffer sizes to prevent underruns
-                            cmd = [
-                                'aplay', 
-                                '-D', 'default',  # Use default device from our config
-                                '--buffer-size=16384',
-                                '--period-size=2048',
-                                output_file
-                            ]
+                            cmd = ['mpg123', '-q', output_file]  # -q for quiet mode
                             
-                            # Run aplay and wait for completion
+                            self.logger.warning(f'🔊 AUDIO PLAYBACK: Executing command: {" ".join(cmd)}')
+                            print(f"🔊 AUDIO PLAYBACK: Executing command: {' '.join(cmd)}")
+                            
+                            # Play and wait for completion
                             result = subprocess.run(cmd, env=play_env, capture_output=True, text=True, timeout=30)
                             
                             if result.returncode == 0:
-                                self.logger.debug('Aplay audio playback completed successfully')
+                                self.logger.warning('🔊 AUDIO PLAYBACK: mpg123 completed successfully')
+                                print("🔊 AUDIO PLAYBACK: mpg123 completed successfully")
                             else:
-                                self.logger.warning(f'Aplay failed: {result.stderr}')
-                                # Fallback to pygame if aplay fails
-                                raise Exception(f"Aplay failed: {result.stderr}")
+                                self.logger.error(f'🔊 AUDIO PLAYBACK: mpg123 failed: {result.stderr}')
+                                print(f"🔊 AUDIO PLAYBACK: mpg123 failed: {result.stderr}")
+                                # Fallback to robot_hat Music if mpg123 fails
+                                raise Exception(f"mpg123 failed: {result.stderr}")
                             
-                        except Exception as aplay_error:
-                            self.logger.warning(f'Aplay failed, falling back to robot_hat Music: {aplay_error}')
+                        except Exception as mpg123_error:
+                            self.logger.warning(f'🔊 AUDIO PLAYBACK: mpg123 failed, falling back to robot_hat Music: {mpg123_error}')
+                            print(f"🔊 AUDIO PLAYBACK: mpg123 failed, falling back to robot_hat Music: {mpg123_error}")
                             
-                            # Fallback to robot_hat Music if aplay fails
+                            # Fallback to robot_hat Music if mpg123 fails
                             if self.music_player:
                                 try:
-                                    self.logger.debug('Fallback: Playing audio with Robot HAT Music')
+                                    self.logger.warning(f'🔊 AUDIO PLAYBACK: Fallback - Playing with Robot HAT Music: {output_file}')
+                                    print(f"🔊 AUDIO PLAYBACK: Fallback - Playing with Robot HAT Music: {output_file}")
                                     
                                     #VOLUME MAX
                                     self.music_player.pygame.mixer.music.set_volume(1.0)
 
+                                    # Add silent audio warm-up to prevent static
+                                    self.logger.info('Playing silent audio warm-up to prevent static')
+                                    try:
+                                        # Generate 3.0 seconds of silence at 44.1kHz for better warm-up
+                                        import numpy as np
+                                        silence_duration = 3.0  # Increased from 0.1 to 3.0 seconds
+                                        sample_rate = 44100
+                                        silence_samples = int(silence_duration * sample_rate)
+                                        silence_data = np.zeros(silence_samples, dtype=np.int16)
+                                        
+                                        # Save silence to temporary file
+                                        import tempfile
+                                        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as silence_file:
+                                            import wave
+                                            with wave.open(silence_file.name, 'w') as wav_file:
+                                                wav_file.setnchannels(1)  # Mono
+                                                wav_file.setsampwidth(2)  # 16-bit
+                                                wav_file.setframerate(sample_rate)
+                                                wav_file.writeframes(silence_data.tobytes())
+                                        
+                                        # Play silence multiple times for better initialization
+                                        for i in range(2):  # Play twice
+                                            self.logger.info(f'Playing silence warm-up {i+1}/2')
+                                            self.music_player.music_play(silence_file.name)
+                                            time.sleep(silence_duration + 0.5)  # Wait for completion + buffer
+                                            self.music_player.music_stop()
+                                            time.sleep(0.3)  # Brief pause between plays
+                                        
+                                        # Clean up silence file
+                                        os.unlink(silence_file.name)
+                                        self.logger.info('Silent audio warm-up completed')
+                                    except Exception as silence_error:
+                                        self.logger.warning(f'Silent audio warm-up failed: {silence_error}')
+
                                     self.music_player.music_play(output_file)
+                                    self.logger.warning('🔊 AUDIO PLAYBACK: Robot HAT Music started playing')
+                                    print("🔊 AUDIO PLAYBACK: Robot HAT Music started playing")
                                     
                                     # Wait for playback with timeout to prevent hanging
                                     max_wait_time = 30  # Maximum 30 seconds
                                     wait_start = time.time()
                                     while self.music_player.pygame.mixer.music.get_busy():
                                         if time.time() - wait_start > max_wait_time:
-                                            self.logger.warning('Audio playback timeout, stopping')
+                                            self.logger.warning('🔊 AUDIO PLAYBACK: Timeout, stopping')
+                                            print("🔊 AUDIO PLAYBACK: Timeout, stopping")
                                             break
                                         time.sleep(0.1)
                                     
                                     self.music_player.music_stop()
-                                    self.logger.debug('Robot HAT Music playback completed')
+                                    self.logger.warning('🔊 AUDIO PLAYBACK: Robot HAT Music completed')
+                                    print("🔊 AUDIO PLAYBACK: Robot HAT Music completed")
                                 except Exception as e:
                                     self.logger.error(f'Failed to play with Robot HAT Music: {e}')
                                     # Fallback to pygame
@@ -451,38 +510,6 @@ class AudioHardwareInterface:
                                         self.logger.debug('Pygame fallback playback completed')
                                     except Exception as pygame_error:
                                         self.logger.error(f'Pygame fallback also failed: {pygame_error}')
-                        else:
-                            # Use pygame as fallback
-                            try:
-                                import pygame
-                                import os
-                                # Configure pygame to use HifiBerry DAC (card 3) with proper ALSA config
-                                # os.environ['SDL_AUDIODRIVER'] = 'alsa'
-                                # os.environ['ALSA_CARD'] = '3'
-                                # os.environ['ALSA_DEVICE'] = '0'
-                                # Use our custom ALSA config if available
-                                # if os.path.exists('/tmp/nevil_asoundrc'):
-                                #     os.environ['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
-                                pygame.mixer.quit()  # Clean up any existing mixer
-                                pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=4096)
-                                pygame.mixer.music.load(output_file)
-                                pygame.mixer.music.set_volume(1.0)
-                                pygame.mixer.music.play()
-                                
-                                # Wait with timeout
-                                max_wait_time = 30
-                                wait_start = time.time()
-                                while pygame.mixer.music.get_busy():
-                                    if time.time() - wait_start > max_wait_time:
-                                        self.logger.warning('Pygame playback timeout, stopping')
-                                        pygame.mixer.music.stop()
-                                        break
-                                    time.sleep(0.1)
-                                
-                                pygame.mixer.quit()
-                                self.logger.debug('Pygame playback completed')
-                            except Exception as pygame_error:
-                                self.logger.error(f'Pygame not available or failed: {pygame_error}')
                         
                         # Clean up temporary file
                         try:
@@ -551,8 +578,14 @@ class AudioHardwareInterface:
                 try:
                     with self.microphone as source:
                         self.logger.debug('Listening for speech...')
+                        
+                        # Set energy threshold based on environment
+                        if self.recognizer.energy_threshold < self.DEFAULT_ENERGY_THRESHOLD:
+                            self.recognizer.energy_threshold = self.DEFAULT_ENERGY_THRESHOLD
+                        
                         if adjust_for_ambient_noise:
                             try:
+                                self.logger.debug('Adjusting for ambient noise...')
                                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                                 self.logger.debug('adjust_for_ambient_noise: done')
                             except Exception as e:
@@ -561,10 +594,6 @@ class AudioHardwareInterface:
                                 self.logger.error('Microphone corrupted by PyAudio failure - disabling speech recognition')
                                 self.microphone = None
                                 return None
-
-                        # Set energy threshold based on environment
-                        if self.recognizer.energy_threshold < self.DEFAULT_ENERGY_THRESHOLD:
-                            self.recognizer.energy_threshold = self.DEFAULT_ENERGY_THRESHOLD
                         
                         audio = self.recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
                         self.logger.debug('Speech captured')
@@ -859,4 +888,5 @@ class AudioHardwareInterface:
             self.logger.error(f'Failed to clean up audio hardware resources: {e}')
 
 if __name__ == "__main__":
+    print("Fixed Audio Hardware Interface - Uses OpenAI TTS as primary, robot_hat Music only for playback")
     print("Fixed Audio Hardware Interface - Uses OpenAI TTS as primary, robot_hat Music only for playback")

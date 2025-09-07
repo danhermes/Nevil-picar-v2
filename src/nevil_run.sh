@@ -13,6 +13,15 @@ export LD_LIBRARY_PATH="$(pwd)/src/install/lib:$LD_LIBRARY_PATH"
 export PATH="$(pwd)/src/install/bin:$PATH"
 export PYTHONPATH="$(pwd)/src/install/lib/python3.10/site-packages:$PYTHONPATH"
 
+# Set up cleanup trap
+cleanup() {
+    echo "🧹 Cleaning up on exit..."
+    ./cleanup_ros2.sh
+}
+
+# Register cleanup function to run on script exit
+trap cleanup EXIT
+
 # Print the command being executed
 echo "Executing: ros2 $*"
 

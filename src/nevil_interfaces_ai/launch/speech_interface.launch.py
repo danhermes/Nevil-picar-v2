@@ -43,7 +43,9 @@ def generate_launch_description():
         executable='speech_recognition_node',
         name='speech_recognition_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        emulate_tty=True,
+        env={'ALSA_CONFIG_FILE': '/dev/null'},
+        arguments=['--ros-args', '--log-level', 'WARN']
     ))
     
     # Add speech synthesis node
@@ -53,7 +55,9 @@ def generate_launch_description():
         executable='speech_synthesis_node',
         name='speech_synthesis_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        emulate_tty=True,
+        env={'ALSA_CONFIG_FILE': '/dev/null'},
+        arguments=['--ros-args', '--log-level', 'WARN']
     ))
     
     # Add AI interface node for action execution

@@ -168,6 +168,29 @@ def generate_launch_description():
     This launch file starts the system on the physical robot hardware.
     """
     
+    # Add signal handling for proper CTRL+C support
+    import signal
+    import sys
+    
+    def signal_handler(sig, frame):
+        #print("\n🛑 Shutdown signal received, cleaning up...")
+        # Force kill all nevil processes
+        import subprocess
+        try:
+            subprocess.run(['pkill', '-f', 'nevil'], check=False)
+            subprocess.run(['pkill', '-f', 'speech_recognition_node'], check=False)
+            subprocess.run(['pkill', '-f', 'speech_synthesis_node'], check=False)
+            subprocess.run(['pkill', '-f', 'ai_interface_node'], check=False)
+        except:
+            pass
+        # Remove signal handlers to prevent re-entry
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
     # CRITICAL: Execute green field validation SYNCHRONOUSLY before any nodes start
     print("🔍 Performing comprehensive green field validation...")
     

@@ -55,3 +55,4 @@ nevil2env/
 test_recording.wav
 logs/
 .env copy
+tts_temp/

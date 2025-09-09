@@ -53,6 +53,8 @@ class NevilAudioRecord:
     DEFAULT_ENERGY_THRESHOLD = 300
     DEFAULT_PAUSE_THRESHOLD = 0.8
     DEFAULT_DYNAMIC_ENERGY = True
+
+    MICROPHONE_DEVICE_INDEX = 1
     
     def __new__(cls, node=None):
         """Singleton pattern implementation."""
@@ -125,7 +127,7 @@ class NevilAudioRecord:
                 print("🔊 Audio Record: [Initializing Audio]sr.Recognizer()")
 
                 # Set the 5 core speech_recognition library parameters
-                self.recognizer.energy_threshold = 4000         # Audio energy level for speech detection (50-4000 range) - HIGHER = less sensitive to ambient noise
+                self.recognizer.energy_threshold = 3000         # Audio energy level for speech detection (50-4000 range) - HIGHER = less sensitive to ambient noise
                 self.recognizer.pause_threshold = 0.8           # Seconds of silence to mark phrase end
                 self.recognizer.phrase_threshold = 0.3          # Minimum speaking duration before considering phrase
                 self.recognizer.non_speaking_duration = 0.5     # Non-speaking audio to keep on both sides
@@ -143,7 +145,7 @@ class NevilAudioRecord:
                     try:
                         self.logger.warning(f'🔊 Audio Record: Attempting to create sr.Microphone with sample rate {sample_rate}...')
                         print(f"🔊 Audio Record: Attempting to create sr.Microphone with sample rate {sample_rate}...")
-                        self.microphone = sr.Microphone(device_index=1, #default device
+                        self.microphone = sr.Microphone(device_index=self.MICROPHONE_DEVICE_INDEX, #default device
                               chunk_size=self.chunk_size, sample_rate=sample_rate)
                         self.sample_rate = sample_rate  # Update the sample rate to what worked
                         self.logger.warning(f'🔊 Audio Record: Microphone initialized successfully with sample rate {sample_rate}')
@@ -359,7 +361,7 @@ class NevilAudioRecord:
             for sample_rate in sample_rates_to_try:
                 try:
                     self.logger.warning(f'Recovery: Attempting to create sr.Microphone with sample rate {sample_rate}...')
-                    self.microphone = sr.Microphone(device_index=1, chunk_size=self.chunk_size, sample_rate=sample_rate)
+                    self.microphone = sr.Microphone(device_index=self.MICROPHONE_DEVICE_INDEX, chunk_size=self.chunk_size, sample_rate=sample_rate)
                     self.sample_rate = sample_rate
                     self.logger.warning(f'Recovery: Microphone recovered successfully with sample rate {sample_rate}')
                     microphone_initialized = True

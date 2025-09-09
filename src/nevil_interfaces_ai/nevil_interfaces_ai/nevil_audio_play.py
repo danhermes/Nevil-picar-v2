@@ -223,7 +223,13 @@ class NevilAudioPlay:
                 self.logger.warning('🔊 AUDIO PLAY: Starting mpg123 with asound.conf configuration')
                 print("🔊 AUDIO PLAY: Starting mpg123 with asound.conf configuration")
                 # Use mpg123 without explicit device - it will use the asound.conf default
-                cmd = ['mpg123', '-q', filename]
+                # Use mpg123 to decode MP3 to stdout, pipe to aplay with default device
+                #aplay -D hw:sndrpihifiberry,0 test.wav
+                #out123 -o alsa -a hw:sndrpihifiberry,0 test.mp3
+                cmd = f'mpg123 -q --stdout "{filename}" | aplay -D hw:sndrpihifiberry,0'
+                # cmd = f'mpg123 -o alsa -a hw:sndrpihifiberry,0 "{filename}"'
+                # cmd = ['mpg123', '-o', 'alsa', '-a', 'hw:sndrpihifiberry,0', '-q', filename]
+                # cmd = ['mpg123', '-q', filename]
                 self.logger.warning(f'🔊 AUDIO PLAY: Executing command: {" ".join(cmd)}')
                 print(f"🔊 AUDIO PLAY: Executing command: {' '.join(cmd)}")
                 

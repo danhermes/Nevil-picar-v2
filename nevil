@@ -18,10 +18,7 @@ cleanup() {
     
     # Wait a moment for processes to fully terminate
     sleep 1
-    
-    # Clean up ALSA config
-    #rm -f /tmp/nevil_asoundrc 2>/dev/null || true
-    
+      
     # Stop and restart ROS2 daemon to clear ghost nodes
     ros2 daemon stop 2>/dev/null || true
     ros2 daemon start 2>/dev/null || true
@@ -76,6 +73,7 @@ ASOUND_CONF=/etc/asound.conf
 AUDIO_CARD_NAME="sndrpihifiberry"
 
 card_num=$(sudo aplay -l |grep $AUDIO_CARD_NAME |awk '{print $2}'|tr -d ':')
+
 echo "card_num=$card_num"
 if [ -n "$card_num" ]; then
     sudo chattr -i $ASOUND_CONF 2>/dev/null || true

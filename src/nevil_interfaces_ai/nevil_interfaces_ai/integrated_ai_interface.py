@@ -27,7 +27,7 @@ if OPENAI_AVAILABLE:
 class IntegratedAIInterface(Node):
     """
     Integrated AI Interface that combines:
-    1. Fixed AudioHardwareInterface (robot_hat + OpenAI TTS)
+    1. Fixed AudioHardwareInterface (robot_hat + OpenAI TTS) <<<------ deprecated for nevil_audio_record.py
     2. OpenAI GPT for intelligent responses
     3. Standardized ROS2 communication using std_msgs/String
     """

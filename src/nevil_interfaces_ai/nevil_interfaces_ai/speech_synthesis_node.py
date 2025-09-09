@@ -29,12 +29,12 @@ def get_env_var(name, default=None):
 from std_msgs.msg import Bool, String
 from nevil_interfaces_ai_msgs.msg import Audio, VoiceResponse, TextResponse, DialogState
 
-# Import the audio hardware interface
+# Import the audio play interface
 try:
-    from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
+    from nevil_interfaces_ai.nevil_audio_play import NevilAudioPlay
 except ImportError:
     # Try relative import if package import fails
-    from nevil_interfaces_ai.audio_hardware_interface import AudioHardwareInterface
+    from nevil_interfaces_ai.nevil_audio_play import NevilAudioPlay
 
 class SpeechSynthesisNode(Node):
     """
@@ -128,7 +128,7 @@ class SpeechSynthesisNode(Node):
         # Initialize audio hardware interface
         self.get_logger().warning('🔊 SPEECH SYNTHESIS NODE: Initializing audio hardware interface...')
         print("🔊 SPEECH SYNTHESIS NODE: Initializing audio hardware interface...")
-        self.audio_hw = AudioHardwareInterface(self)
+        self.audio_hw = NevilAudioPlay(self)
         
         # Initialize state variables
         self.is_speaking = False

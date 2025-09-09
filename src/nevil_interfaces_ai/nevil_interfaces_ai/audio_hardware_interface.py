@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 """
-Audio for Nevil-picar v2.0.
+Audio for Nevil-picar v2.0.   ---  DEPRECATED 9.8.2025 - use nevil_audio_record.py and nevil_audio_play.py instead
+------------------------------------------------------
 
 This module provides a thread-safe hardware interface for audio input/output
 on the Nevil-picar v2.0 system, interfacing with the microphone and speaker hardware.
@@ -670,7 +671,7 @@ class AudioHardwareInterface:
             audio: Audio data to recognize
             language: Language code (defaults to self.language if None)
             use_online: Whether to use online recognition
-            api: API to use for online recognition ('openai', 'whisper-local', 'google', 'auto', etc.)
+            api: API to use for online recognition ('openai', 'whisper-local', 'auto', etc.)
         
         Returns:
             Recognized text

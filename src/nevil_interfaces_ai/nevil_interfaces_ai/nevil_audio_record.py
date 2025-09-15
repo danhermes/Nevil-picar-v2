@@ -13,6 +13,7 @@ Extracted from AudioHardwareInterface to separate record functionality.
 import os
 import time
 import threading
+import subprocess
 import speech_recognition as sr
 from rclpy.logging import get_logger
 
@@ -50,11 +51,11 @@ class NevilAudioRecord:
     DEFAULT_CHANNELS = 1
     DEFAULT_CHUNK_SIZE = 1024
     DEFAULT_LANGUAGE = "en-US"
-    DEFAULT_ENERGY_THRESHOLD = 300
-    DEFAULT_PAUSE_THRESHOLD = 0.8
-    DEFAULT_DYNAMIC_ENERGY = True
+    # DEFAULT_ENERGY_THRESHOLD = 300
+    # DEFAULT_PAUSE_THRESHOLD = 0.8
+    # DEFAULT_DYNAMIC_ENERGY = True
 
-    MICROPHONE_DEVICE_INDEX = 1
+    MICROPHONE_DEVICE_INDEX = 1  # USB PnP Sound Device: Audio (hw:3,0) - PyAudio index 1
     
     def __new__(cls, node=None):
         """Singleton pattern implementation."""
@@ -77,6 +78,30 @@ class NevilAudioRecord:
             
         self.node = node
         self.logger = get_logger('nevil_audio_record') if node is None else node.get_logger()
+        
+        self.logger.warning('🔊 Audio Record: RECORD DEVICES: arecord -l...')
+        print("🔊 Audio Record: RECORD DEVICES: arecord -l...")
+        
+        # Display and log available recording devices
+        try:
+            result = subprocess.run(['arecord', '-l'], capture_output=True, text=True)
+            self.logger.info(f'Available recording devices:\n{result.stdout}')
+            print(f'🔊 Available recording devices:\n{result.stdout}')
+            if result.stderr:
+                self.logger.warning(f'arecord -l stderr: {result.stderr}')
+                print(f'🔊 arecord -l stderr: {result.stderr}')
+            
+            # Also try arecord --list-devices for more detailed info
+            result2 = subprocess.run(['arecord', '--list-devices'], capture_output=True, text=True)
+            self.logger.info(f'Detailed recording devices:\n{result2.stdout}')
+            print(f'🔊 Detailed recording devices:\n{result2.stdout}')
+            if result2.stderr:
+                self.logger.warning(f'arecord --list-devices stderr: {result2.stderr}')
+                print(f'🔊 arecord --list-devices stderr: {result2.stderr}')
+                
+        except Exception as e:
+            self.logger.error(f'Failed to get recording devices: {e}')
+            print(f'🔊 Failed to get recording devices: {e}')
         
         # Initialize logging
         self.logger.warning('🔊 Audio Record: Initializing SINGLETON...')
@@ -127,11 +152,11 @@ class NevilAudioRecord:
                 print("🔊 Audio Record: [Initializing Audio]sr.Recognizer()")
 
                 # Set the 5 core speech_recognition library parameters
-                self.recognizer.energy_threshold = 3000         # Audio energy level for speech detection (50-4000 range) - HIGHER = less sensitive to ambient noise
-                self.recognizer.pause_threshold = 0.8           # Seconds of silence to mark phrase end
-                self.recognizer.phrase_threshold = 0.3          # Minimum speaking duration before considering phrase
-                self.recognizer.non_speaking_duration = 0.5     # Non-speaking audio to keep on both sides
-                self.recognizer.dynamic_energy_threshold = True # Whether to adapt to ambient noise
+                self.recognizer.energy_threshold = 400         # Audio energy level for speech detection (50-4000 range) - HIGHER = less sensitive to ambient noise
+                self.recognizer.pause_threshold = 1.2           # Seconds of silence to mark phrase end - LONGER to avoid ambient noise
+                self.recognizer.phrase_threshold = 0.8          # Minimum speaking duration before considering phrase - LONGER to filter noise
+                self.recognizer.non_speaking_duration = 0.3     # Non-speaking audio to keep on both sides
+                self.recognizer.dynamic_energy_threshold = False # Disable dynamic adjustment to prevent drift and hallucinations
 
                 # Initialize microphone
                 self.logger.warning("🔊 Audio Record: [Initializing Audio]sr.Microphone")
@@ -145,8 +170,12 @@ class NevilAudioRecord:
                     try:
                         self.logger.warning(f'🔊 Audio Record: Attempting to create sr.Microphone with sample rate {sample_rate}...')
                         print(f"🔊 Audio Record: Attempting to create sr.Microphone with sample rate {sample_rate}...")
-                        self.microphone = sr.Microphone(device_index=self.MICROPHONE_DEVICE_INDEX, #default device
-                              chunk_size=self.chunk_size, sample_rate=sample_rate)
+                        # Use default device if MICROPHONE_DEVICE_INDEX is None
+                        if self.MICROPHONE_DEVICE_INDEX is None:
+                            self.microphone = sr.Microphone(chunk_size=self.chunk_size, sample_rate=sample_rate)
+                        else:
+                            self.microphone = sr.Microphone(device_index=self.MICROPHONE_DEVICE_INDEX,
+                                  chunk_size=self.chunk_size, sample_rate=sample_rate)
                         self.sample_rate = sample_rate  # Update the sample rate to what worked
                         self.logger.warning(f'🔊 Audio Record: Microphone initialized successfully with sample rate {sample_rate}')
                         print(f"🔊 Audio Record: Microphone initialized successfully with sample rate {sample_rate}")
@@ -225,9 +254,9 @@ class NevilAudioRecord:
                     with self.microphone as source:
                         self.logger.debug('Listening for speech...')
                         
-                        # Set energy threshold based on environment
-                        if self.recognizer.energy_threshold < self.DEFAULT_ENERGY_THRESHOLD:
-                            self.recognizer.energy_threshold = self.DEFAULT_ENERGY_THRESHOLD
+                        # # Set energy threshold based on environment
+                        # if self.recognizer.energy_threshold < self.DEFAULT_ENERGY_THRESHOLD:
+                        #     self.recognizer.energy_threshold = self.DEFAULT_ENERGY_THRESHOLD
                         
                         if adjust_for_ambient_noise:
                             try:
@@ -235,11 +264,9 @@ class NevilAudioRecord:
                                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                                 self.logger.debug('adjust_for_ambient_noise: done')
                             except Exception as e:
-                                self.logger.warning(f'PyAudio read failed during ambient noise adjustment: {e}')
-                                # PyAudio failure - mark microphone as corrupted and return None
-                                self.logger.error('Microphone corrupted by PyAudio failure - disabling speech recognition')
-                                self.microphone = None
-                                return None
+                                self.logger.warning(f'Failed to adjust for ambient noise: {e}')
+                                # Continue without ambient noise adjustment rather than failing completely
+                                self.logger.info('Continuing without ambient noise adjustment')
                         
                         audio = self.recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
                         self.logger.debug('Speech captured')
@@ -361,7 +388,11 @@ class NevilAudioRecord:
             for sample_rate in sample_rates_to_try:
                 try:
                     self.logger.warning(f'Recovery: Attempting to create sr.Microphone with sample rate {sample_rate}...')
-                    self.microphone = sr.Microphone(device_index=self.MICROPHONE_DEVICE_INDEX, chunk_size=self.chunk_size, sample_rate=sample_rate)
+                    # Use default device if MICROPHONE_DEVICE_INDEX is None
+                    if self.MICROPHONE_DEVICE_INDEX is None:
+                        self.microphone = sr.Microphone(chunk_size=self.chunk_size, sample_rate=sample_rate)
+                    else:
+                        self.microphone = sr.Microphone(device_index=self.MICROPHONE_DEVICE_INDEX, chunk_size=self.chunk_size, sample_rate=sample_rate)
                     self.sample_rate = sample_rate
                     self.logger.warning(f'Recovery: Microphone recovered successfully with sample rate {sample_rate}')
                     microphone_initialized = True

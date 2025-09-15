@@ -55,7 +55,7 @@ def generate_launch_description():
         cmd=['python3', speech_recognition_path],
         name='speech_recognition_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        env={}
     ))
     
     # Add speech synthesis node
@@ -63,7 +63,7 @@ def generate_launch_description():
         cmd=['python3', speech_synthesis_path],
         name='speech_synthesis_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        env={}
     ))
     
     # Add dialog manager node
@@ -71,7 +71,7 @@ def generate_launch_description():
         cmd=['python3', dialog_manager_path],
         name='dialog_manager_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        env={}
     ))
     
     return ld

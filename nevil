@@ -79,6 +79,30 @@ if [ -n "$card_num" ]; then
     sudo chattr -i $ASOUND_CONF 2>/dev/null || true
     sudo chmod +rw $ASOUND_CONF
     sudo tee $ASOUND_CONF > /dev/null << INNER_EOF
+# USB Microphone (input) configuration
+pcm.usbmic {
+    type hw card 2
+    device 0
+}
+
+pcm.dsnoop_mic {
+    type dsnoop
+    ipc_key 2048
+    slave {
+        pcm "usbmic"
+        format S16_LE
+        rate 44100
+        channels 1
+        buffer_size 4096
+        period_size 1024
+        periods 4
+    }
+    bindings {
+        0 0
+    }
+}
+
+# HifiBerry DAC (output) configuration
 pcm.speakerbonnet {
     type hw card $card_num
 }
@@ -112,9 +136,15 @@ ctl.softvol {
     type hw card $card_num
 }
 
+# Default device configuration (asymmetric: USB mic input, HifiBerry output)
 pcm.!default {
-    type             plug
-    slave.pcm       "softvol"
+    type asym
+    playback.pcm "softvol"
+    capture.pcm "dsnoop_mic"
+}
+
+ctl.!default {
+    type hw card 2
 }
 INNER_EOF
     echo "systemctl restart aplay.service"

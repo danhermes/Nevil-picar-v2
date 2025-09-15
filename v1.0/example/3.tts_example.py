@@ -1,4 +1,8 @@
 from time import sleep
+import sys
+import os
+# Insert the local robot_hat path at the beginning to take precedence over system installation
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..', 'robot-hat'))
 from robot_hat import Music,TTS
 import readchar
 from os import geteuid

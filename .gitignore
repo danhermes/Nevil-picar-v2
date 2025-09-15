@@ -56,3 +56,7 @@ test_recording.wav
 logs/
 .env copy
 tts_temp/
+test_card3.wav
+test_default.wav
+test_fixed_default.wav
+test_mic_fixed.wav

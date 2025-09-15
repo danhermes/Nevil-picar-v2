@@ -44,7 +44,7 @@ def generate_launch_description():
         name='speech_recognition_node',
         output='screen',
         emulate_tty=True,
-        env={'ALSA_CONFIG_FILE': '/dev/null'},
+        env={},
         arguments=['--ros-args', '--log-level', 'WARN']
     ))
     
@@ -56,7 +56,7 @@ def generate_launch_description():
         name='speech_synthesis_node',
         output='screen',
         emulate_tty=True,
-        env={'ALSA_CONFIG_FILE': '/dev/null'},
+        env={},
         arguments=['--ros-args', '--log-level', 'WARN']
     ))
     
@@ -66,7 +66,7 @@ def generate_launch_description():
         executable='ai_interface_node',
         name='ai_interface_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        #env={'ALSA_CONFIG_FILE': '/dev/null'}
     ))
     
     # Navigation node is handled by the main launch file to prevent GPIO conflicts

@@ -59,6 +59,23 @@ class NevilAudioPlay:
         self.logger.warning('🔊 Audio Play: Initializing...')
         print("🔊 Audio Play: Initializing...")
         
+
+        self.logger.warning('🔊 Audio Play: PLAY DEVICES: aplay -l...')
+        print("🔊 Audio Play: PLAY DEVICES: aplay -l...")
+        
+        # Display and log available audio devices
+        try:
+            result = subprocess.run(['aplay', '-l'], capture_output=True, text=True)
+            self.logger.info(f'Available audio devices:\n{result.stdout}')
+            print(f'🔊 Available audio devices:\n{result.stdout}')
+            if result.stderr:
+                self.logger.warning(f'aplay -l stderr: {result.stderr}')
+                print(f'🔊 aplay -l stderr: {result.stderr}')
+        except Exception as e:
+            self.logger.error(f'Failed to get audio devices: {e}')
+            print(f'🔊 Failed to get audio devices: {e}')
+
+
         # Thread safety
         self.hardware_mutex = threading.Lock()
         
@@ -93,11 +110,22 @@ class NevilAudioPlay:
             self.logger.warning('OpenAI library not available')
         
         try:
-            import robot_hat
+            import sys
+            from os import geteuid
+            if geteuid() != 0:
+                print(f"\033[0;33m{'The program needs to be run using sudo, otherwise there may be no sound.'}\033[0m")
+                self.logger.warning('The program needs to be run using sudo, otherwise there may be no sound.')
+            # Insert the local robot_hat path at the beginning to take precedence over system installation
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../..', 'robot-hat'))
+            self.logger.info(f'Robot HAT python sys.path: {sys.path}')
+            print(f'sys.path: {sys.path}')
+            #sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..', '..', '..', 'robot-hat'))
+            from robot_hat import Music
             ROBOT_HAT_AVAILABLE = True
-        except ImportError:
+        except Exception as e:
+            self.logger.warning(f'Robot HAT Music not available: {e}')
             ROBOT_HAT_AVAILABLE = False
-            self.logger.warning('Robot HAT library not available')
+
         
         if not OPENAI_AVAILABLE or not self.openai_api_key:
             self.logger.warning('🔊 Audio Play: Running in simulation mode')
@@ -115,22 +143,21 @@ class NevilAudioPlay:
                     self.tts = "openai_tts"  # String marker for OpenAI TTS
                     self.logger.info('Using OpenAI TTS as primary text-to-speech engine')
                     
-                    # Initialize robot_hat Music for audio playback if available
-                    if ROBOT_HAT_AVAILABLE:
-                        try:
-                            import robot_hat
-                            self.music_player = robot_hat.Music()
-                            self.speaker_pin = None  # Not needed for audio playback
-                            self.logger.info('Robot HAT Music initialized for audio playback')
-                        except Exception as e:
-                            self.logger.warning(f'Failed to initialize Robot HAT Music for playback: {e}')
-                            self.music_player = None
-                            self.speaker_pin = None
-                    else:
-                        self.music_player = None
-                        self.speaker_pin = None
+                    # # Initialize robot_hat Music for audio playback if available
+                    # if ROBOT_HAT_AVAILABLE:
+                    #     try:
+                    #         self.music_player = Music()
+                    #         self.speaker_pin = None  # Not needed for audio playback
+                    #         self.logger.info('Robot HAT Music initialized for audio playback')
+                    #     except Exception as e:
+                    #         self.logger.warning(f'Failed to initialize Robot HAT Music for playback: {e}')
+                    #         self.music_player = None
+                    #         self.speaker_pin = None
+                    # else:
+                    #     self.music_player = None
+                    #     self.speaker_pin = None
                 else:
-                    self.logger.warn('No TTS engine available (OpenAI not available or no API key)')
+                    self.logger.warning('No TTS engine available (OpenAI not available or no API key)')
                     self.tts = None
                     self.music_player = None
                     self.speaker_pin = None
@@ -147,6 +174,7 @@ class NevilAudioPlay:
                 self.music_player = None
                 self.speaker_pin = None
                 self.simulation_mode = True
+
 
     def speak_text(self, text, voice=None, wait=True):
         """
@@ -194,21 +222,22 @@ class NevilAudioPlay:
                             f.write(response.content)
                         
                         # Play the audio file
-                        self._play_audio_file(temp_filename, wait)
-                        
+                        #self._play_audio_file(temp_filename, wait)
+                        self._play_audio_file_with_sudo(temp_filename, wait)
                         # Clean up temporary file
                         try:
-                            os.remove(temp_filename)
+                            x=1
+                            #os.remove(temp_filename)
                         except Exception as e:
                             self.logger.warning(f'Failed to remove temporary TTS file: {e}')
                         
                     except Exception as e:
                         self.logger.error(f'OpenAI TTS failed: {e}')
-                        # Fallback to robot_hat Music if available
-                        if self.music_player:
-                            self._fallback_tts(text)
-                        else:
-                            self.logger.error('No fallback TTS available')
+                        # # Fallback to robot_hat Music if available
+                        # if self.music_player:
+                        #     self._fallback_tts(text)
+                        #  else:
+                        #     self.logger.error('No fallback TTS available')
                 else:
                     self.logger.error('No working TTS engine available')
                     
@@ -219,52 +248,56 @@ class NevilAudioPlay:
         """Play an audio file using available audio system."""
         try:
             # Try mpg123 first (most reliable) - let it use the asound.conf configuration
-            if self._check_command_available('mpg123'):
-                self.logger.warning('🔊 AUDIO PLAY: Starting mpg123 with asound.conf configuration')
-                print("🔊 AUDIO PLAY: Starting mpg123 with asound.conf configuration")
-                # Use mpg123 without explicit device - it will use the asound.conf default
-                # Use mpg123 to decode MP3 to stdout, pipe to aplay with default device
-                #aplay -D hw:sndrpihifiberry,0 test.wav
-                #out123 -o alsa -a hw:sndrpihifiberry,0 test.mp3
-                cmd = f'mpg123 -q --stdout "{filename}" | aplay -D hw:sndrpihifiberry,0'
-                # cmd = f'mpg123 -o alsa -a hw:sndrpihifiberry,0 "{filename}"'
-                # cmd = ['mpg123', '-o', 'alsa', '-a', 'hw:sndrpihifiberry,0', '-q', filename]
-                # cmd = ['mpg123', '-q', filename]
-                self.logger.warning(f'🔊 AUDIO PLAY: Executing command: {" ".join(cmd)}')
-                print(f"🔊 AUDIO PLAY: Executing command: {' '.join(cmd)}")
+            # if self._check_command_available('mpg123'):
+            #     self.logger.warning('🔊 AUDIO PLAY: Starting mpg123 with asound.conf configuration')
+            #     print("🔊 AUDIO PLAY: Starting mpg123 with asound.conf configuration")
+            #     # Use mpg123 without explicit device - it will use the asound.conf default
+            #     # Use mpg123 to decode MP3 to stdout, pipe to aplay with default device
+            #     #aplay -D hw:sndrpihifiberry,0 test.wav
+            #     #out123 -o alsa -a hw:sndrpihifiberry,0 test.mp3
+            #     # Old command (card 2): cmd = f'mpg123 -q -s "{filename}" | aplay -D hw:sndrpihifiberry,0'
+            #     #cmd = f'mpg123 -q -s "{filename}" | aplay -D plughw:CARD=sndrpihifiberry,DEV=0 -f cd' # aplay -D hw:3,0'
+            #     #cmd = f'mpg123 -q -s "{filename}" | aplay -D plughw:CARD=sndrpihifiberry,DEV=0 -f cd' # aplay -D hw:3,0'
+            #     cmd = f'mpg123 -q -s "{filename}" | aplay -D hw:3,0'
+
+            #     self.logger.warning(f'🔊 AUDIO PLAY: Executing command: {cmd}')
+            #     print(f"🔊 AUDIO PLAY: Executing command: {cmd}")
                 
-                if wait:
-                    result = subprocess.run(cmd, capture_output=True, text=True)
-                    if result.returncode == 0:
-                        self.logger.warning('🔊 AUDIO PLAY: mpg123 completed successfully')
-                        print("🔊 AUDIO PLAY: mpg123 completed successfully")
-                    else:
-                        self.logger.error(f'mpg123 failed with return code {result.returncode}: {result.stderr}')
-                        # Try explicit ALSA as fallback
-                        self.logger.warning('🔊 AUDIO PLAY: Trying mpg123 with explicit ALSA fallback')
-                        fallback_cmd = ['mpg123', '-o', 'alsa', '-a', 'default', '-q', filename]
-                        fallback_result = subprocess.run(fallback_cmd, capture_output=True, text=True)
-                        if fallback_result.returncode != 0:
-                            self.logger.error(f'mpg123 ALSA fallback also failed: {fallback_result.stderr}')
-                        else:
-                            self.logger.warning('🔊 AUDIO PLAY: mpg123 ALSA fallback completed successfully')
-                else:
-                    subprocess.Popen(cmd)
-                return
+
+ 
+            #     if wait:
+            #         result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            #         if result.returncode == 0:
+            #             self.logger.warning('🔊 AUDIO PLAY: mpg123 completed successfully')
+            #             print("🔊 AUDIO PLAY: mpg123 completed successfully")
+            #         else:
+            #             self.logger.error(f'mpg123 failed with return code {result.returncode}: {result.stderr}')
+            #             # Try explicit ALSA as fallback
+            #             self.logger.warning('🔊 AUDIO PLAY: Trying mpg123 with explicit ALSA fallback')
+            #             fallback_cmd = ['mpg123', '-o', 'alsa', '-a', 'default', '-q', filename]
+            #             fallback_result = subprocess.run(fallback_cmd, capture_output=True, text=True)
+            #             if fallback_result.returncode != 0:
+            #                 self.logger.error(f'mpg123 ALSA fallback also failed: {fallback_result.stderr}')
+            #             else:
+            #                 self.logger.warning('🔊 AUDIO PLAY: mpg123 ALSA fallback completed successfully')
+            #     else:
+            #         subprocess.Popen(cmd, shell=True)
+            #     return
             
-            # Fallback to aplay
-            if self._check_command_available('aplay'):
-                cmd = ['aplay', filename]
-                if wait:
-                    subprocess.run(cmd, capture_output=True)
-                else:
-                    subprocess.Popen(cmd)
-                return
+            # # Fallback to aplay
+            # if self._check_command_available('aplay'):
+            #     # Old command (card 2): cmd = ['aplay', '-D', 'hw:sndrpihifiberry,0', filename]
+            #     cmd = ['aplay', '-D', 'hw:3,0', filename]
+            #     if wait:
+            #         subprocess.run(cmd, capture_output=True)
+            #     else:
+            #         subprocess.Popen(cmd)
+            #     return
             
             # Fallback to robot_hat Music
             if self.music_player:
                 self.music_player.music_set_volume(100)
-                self.music_player.sound_play(filename)
+                self.music_player.music_play(filename)
                 if wait:
                     time.sleep(2.0)  # Wait for playback
                 return
@@ -274,6 +307,69 @@ class NevilAudioPlay:
         except Exception as e:
             self.logger.error(f'Failed to play audio file: {e}')
 
+
+    def _play_audio_file_with_sudo(self, filename, wait=True):
+        """Play audio file using sudo subprocess - simple init and play"""
+        try:
+            # Simple script that creates Music, plays, and lets GC clean up
+            play_script = f"""
+import sys
+sys.path.insert(0, '/home/dan/robot-hat')
+from robot_hat import Music
+import time
+
+try:
+    # Create Music instance, play, let GC clean up
+    music = Music()
+    music.music_set_volume(100)
+    music.music_play('{filename}')
+    if {str(wait).lower()}:
+        time.sleep(2.0)  # Wait for playback
+    print("SUCCESS: Audio played")
+    # Music instance will be garbage collected when script ends
+except Exception as e:
+    import traceback
+    error_details = traceback.format_exc()
+    print(f"ERROR: Audio playback failed: {{e}}")
+    print(f"TRACEBACK: {{error_details}}")
+    sys.exit(1)
+"""
+            
+            with open('/tmp/play_audio_simple.py', 'w') as f:
+                f.write(play_script)
+            
+            # Run the playback with sudo
+            result = subprocess.run(['sudo', 'python3', '/tmp/play_audio_simple.py'], 
+                                  capture_output=True, text=True)
+            
+            if result.returncode == 0 and "SUCCESS" in result.stdout:
+                self.logger.info(f'Audio played successfully with sudo: {filename}')
+                return True
+            else:
+                self.logger.error(f'Sudo audio playback failed - return code: {result.returncode}')
+                self.logger.error(f'Sudo audio playback stdout: {result.stdout}')
+                self.logger.error(f'Sudo audio playback stderr: {result.stderr}')
+                print(f'🔊 Sudo audio playback failed - return code: {result.returncode}')
+                print(f'🔊 Sudo audio playback stdout: {result.stdout}')
+                print(f'🔊 Sudo audio playback stderr: {result.stderr}')
+                return False
+                
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            self.logger.error(f'Sudo audio playback error: {e}')
+            self.logger.error(f'Sudo audio playback traceback: {error_details}')
+            print(f'🔊 Sudo audio playback error: {e}')
+            print(f'🔊 Sudo audio playback traceback: {error_details}')
+            return False
+        finally:
+            # Clean up temp file
+            try:
+                os.remove('/tmp/play_audio_simple.py')
+            except:
+                pass
+
+
     def _check_command_available(self, command):
         """Check if a command is available in the system."""
         try:
@@ -282,18 +378,18 @@ class NevilAudioPlay:
         except subprocess.CalledProcessError:
             return False
 
-    def _fallback_tts(self, text):
-        """Fallback TTS using robot_hat Music."""
-        try:
-            if self.music_player:
-                self.music_player.music_set_volume(100)
-                # Simple text-to-speech using robot_hat (if available)
-                self.logger.warning('Using robot_hat Music fallback TTS')
-                # This is a placeholder - robot_hat Music doesn't have built-in TTS
-                # In a real implementation, you might use espeak or festival
-                self.logger.warning(f'Fallback TTS: {text}')
-        except Exception as e:
-            self.logger.error(f'Fallback TTS failed: {e}')
+    # def _fallback_tts(self, text):
+    #     """Fallback TTS using robot_hat Music."""
+    #     try:
+    #         if self.music_player:
+    #             self.music_player.music_set_volume(100)
+    #             # Simple text-to-speech using robot_hat (if available)
+    #             self.logger.warning('Using robot_hat Music fallback TTS')
+    #             # This is a placeholder - robot_hat Music doesn't have built-in TTS
+    #             # In a real implementation, you might use espeak or festival
+    #             self.logger.warning(f'Fallback TTS: {text}')
+    #     except Exception as e:
+    #         self.logger.error(f'Fallback TTS failed: {e}')
 
     def set_speaker_voice(self, voice):
         """Set the TTS voice."""

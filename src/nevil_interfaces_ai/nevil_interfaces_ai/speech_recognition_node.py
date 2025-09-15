@@ -131,8 +131,8 @@ class SpeechRecognitionNode(Node):
         )
         
         # Initialize audio hardware interface
-        self.get_logger().warning('🔊 Speech Recog: Initializing audio hardware interface...')
-        print("🔊 Speech Recog: Initializing audio hardware interface...")
+        self.get_logger().warning('🔊 Speech Recog: Initializing audio RECORDINGhardware interface...')
+        print("🔊 Speech Recog: Initializing audio RECORDING hardware interface...")
         self.audio_hw = NevilAudioRecord(self)
         
         # Check if audio hardware initialized properly

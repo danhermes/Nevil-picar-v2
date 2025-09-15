@@ -1,14 +1,16 @@
 # ALSA configuration to prevent underrun errors
 # This file should be placed in the home directory or /etc/asound.conf
 
+# Set USB microphone as default capture device
 pcm.!default {
-    type pulse
-    server unix:/tmp/pulse-socket
+    type asym
+    playback.pcm "hw:3,0"
+    capture.pcm "hw:3,0"
 }
 
 ctl.!default {
-    type pulse
-    server unix:/tmp/pulse-socket
+    type hw
+    card 3
 }
 
 # Hardware PCM configuration with larger buffers
@@ -42,22 +44,21 @@ pcm.dmix_optimized {
     }
 }
 
-# Capture device with optimized settings
+# Capture device with optimized settings - USB microphone
 pcm.dsnoop_optimized {
     type dsnoop
     ipc_key 2048
     slave {
-        pcm "hw:0,0"
+        pcm "hw:3,0"
         format S16_LE
         rate 44100
-        channels 2
+        channels 1
         buffer_size 4096
         period_size 1024
         periods 4
     }
     bindings {
         0 0
-        1 1
     }
 }
 

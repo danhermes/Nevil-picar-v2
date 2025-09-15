@@ -394,8 +394,8 @@ class AudioHardwareInterface:
                             
                             # Create environment with our ALSA config
                             play_env = os.environ.copy()
-                            if os.path.exists('/tmp/nevil_asoundrc'):
-                                play_env['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
+                            # if os.path.exists('/tmp/nevil_asoundrc'):
+                            #     play_env['ALSA_CONFIG_FILE'] = '/tmp/nevil_asoundrc'
                             
                             cmd = ['mpg123', '-q', output_file]  # -q for quiet mode
                             

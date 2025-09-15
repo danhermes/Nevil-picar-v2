@@ -40,7 +40,7 @@ def generate_launch_description():
         cmd=['python3', os.path.join(scripts_dir, 'speech_recognition_node.py')],
         name='speech_recognition_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        env={}
     ))
     
     # Add speech synthesis node using ExecuteProcess
@@ -48,7 +48,7 @@ def generate_launch_description():
         cmd=['python3', os.path.join(scripts_dir, 'speech_synthesis_node.py')],
         name='speech_synthesis_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        env={}
     ))
     
     # Add dialog manager node using ExecuteProcess
@@ -56,7 +56,7 @@ def generate_launch_description():
         cmd=['python3', os.path.join(scripts_dir, 'dialog_manager_node.py')],
         name='dialog_manager_node',
         output='screen',
-        env={'ALSA_CONFIG_FILE': '/dev/null'}
+        env={}
     ))
     
     return ld

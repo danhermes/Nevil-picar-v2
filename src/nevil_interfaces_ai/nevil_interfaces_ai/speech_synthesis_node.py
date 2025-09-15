@@ -126,8 +126,8 @@ class SpeechSynthesisNode(Node):
         )
         
         # Initialize audio hardware interface
-        self.get_logger().warning('🔊 SPEECH SYNTHESIS NODE: Initializing audio hardware interface...')
-        print("🔊 SPEECH SYNTHESIS NODE: Initializing audio hardware interface...")
+        self.get_logger().warning('🔊 SPEECH SYNTHESIS NODE: Initializing audio PLAYBACK hardware interface...')
+        print("🔊 SPEECH SYNTHESIS NODE: Initializing audio PLAYBACK hardware interface...")
         self.audio_hw = NevilAudioPlay(self)
         
         # Initialize state variables
